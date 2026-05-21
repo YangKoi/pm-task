@@ -1410,3 +1410,124 @@ button {
         padding: 1rem 1.25rem;
     }
 }
+
+/* ==========================================================================
+   New Premium Upgrades: Assignee Badge, Specific Progress & Checkbox Toggle
+   ========================================================================== */
+.card-title-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+}
+
+.card-complete-checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--border-radius-full);
+    border: 2px solid var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.card-complete-checkbox:hover {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-muted);
+}
+.card-complete-checkbox.checked {
+    background-color: var(--color-completed);
+    border-color: var(--color-completed);
+    color: white;
+}
+.card-complete-checkbox.checked i {
+    width: 12px;
+    height: 12px;
+}
+
+.task-card-body h4.completed-text {
+    text-decoration: line-through;
+    color: var(--color-text-muted);
+}
+
+.task-assignee-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.725rem;
+    color: var(--color-text-muted);
+    background-color: var(--bg-card-border);
+    padding: 3px 8px;
+    border-radius: var(--border-radius-sm);
+    margin-top: 0.35rem;
+    font-weight: 500;
+}
+.task-assignee-badge i {
+    width: 12px;
+    height: 12px;
+}
+
+.task-card-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.card-progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.725rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+/* Specific Progress Range Slider Premium design */
+.progress-slider-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Reset slider input range styling */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: var(--bg-card-border-hover);
+    height: 6px;
+    border-radius: var(--border-radius-full);
+    outline: none;
+    transition: background var(--transition-fast);
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--border-radius-full);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    cursor: pointer;
+    box-shadow: 0 2px 6px var(--color-primary-glow);
+    transition: transform var(--transition-fast);
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: var(--border-radius-full);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    cursor: pointer;
+    box-shadow: 0 2px 6px var(--color-primary-glow);
+    transition: transform var(--transition-fast);
+}
+input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.2);
+}
+

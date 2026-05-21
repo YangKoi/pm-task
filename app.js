@@ -13,6 +13,8 @@ const DEFAULT_TASKS = [
         category: "Work",
         priority: "high",
         status: "inprogress",
+        assignee: "Trần Minh Quân",
+        progress: 66,
         subtasks: [
             { id: "sub-1-1", title: "Phác thảo wireframe sơ bộ", completed: true },
             { id: "sub-1-2", title: "Thiết kế giao diện Dark Mode", completed: true },
@@ -28,6 +30,8 @@ const DEFAULT_TASKS = [
         category: "Health",
         priority: "medium",
         status: "todo",
+        assignee: "Nguyễn Hoàng Nam",
+        progress: 0,
         subtasks: [
             { id: "sub-2-1", title: "Khởi động nhẹ nhàng 10 phút", completed: false },
             { id: "sub-2-2", title: "Đi bộ nhanh kết hợp chạy bộ 5km", completed: false }
@@ -42,6 +46,8 @@ const DEFAULT_TASKS = [
         category: "Shopping",
         priority: "low",
         status: "todo",
+        assignee: "Phạm Thùy Chi",
+        progress: 0,
         subtasks: [],
         createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000
     },
@@ -53,6 +59,8 @@ const DEFAULT_TASKS = [
         category: "Learning",
         priority: "high",
         status: "completed",
+        assignee: "Lê Quang Bách",
+        progress: 100,
         subtasks: [
             { id: "sub-4-1", title: "Học lý thuyết về Event Loop", completed: true },
             { id: "sub-4-2", title: "Viết demo pháo hoa Canvas hoàn chỉnh", completed: true }
@@ -121,6 +129,11 @@ const taskCategoryInput = document.getElementById("task-category-input");
 const subtaskNewTitle = document.getElementById("subtask-new-title");
 const subtaskAddBtn = document.getElementById("subtask-add-btn");
 const modalSubtaskList = document.getElementById("modal-subtask-list");
+
+const taskAssigneeInput = document.getElementById("task-assignee-input");
+const taskStatusInput = document.getElementById("task-status-input");
+const taskProgressInput = document.getElementById("task-progress-input");
+const progressValLabel = document.getElementById("progress-val-label");
 
 // Backup Elements
 const exportBtn = document.getElementById("export-btn");
@@ -255,6 +268,26 @@ function setupEventListeners() {
         }
     });
     subtaskAddBtn.addEventListener("click", handleAddSubtask);
+
+    // Specific progress & status live sync inside modal
+    taskStatusInput.addEventListener("change", (e) => {
+        if (e.target.value === "completed") {
+            taskProgressInput.value = 100;
+            progressValLabel.textContent = "100%";
+        } else if (taskProgressInput.value == 100) {
+            taskProgressInput.value = 80;
+            progressValLabel.textContent = "80%";
+        }
+    });
+    taskProgressInput.addEventListener("input", (e) => {
+        const val = parseInt(e.target.value);
+        progressValLabel.textContent = `${val}%`;
+        if (val === 100) {
+            taskStatusInput.value = "completed";
+        } else if (taskStatusInput.value === "completed" && val < 100) {
+            taskStatusInput.value = "inprogress";
+        }
+    });
 
     // Export / Import
     exportBtn.addEventListener("click", exportData);
@@ -450,6 +483,8 @@ function createTaskCard(task) {
     // Check overdue
     const todayStr = new Date().toISOString().split('T')[0];
     const isOverdue = task.status !== "completed" && task.dueDate < todayStr;
+    const isCompleted = task.status === "completed";
+    const completedClass = isCompleted ? "completed-text" : "";
 
     // Subtasks calculations
     let subtaskHTML = "";
@@ -497,10 +532,31 @@ function createTaskCard(task) {
             </div>
         </div>
         <div class="task-card-body">
-            <h4>${escapeHTML(task.title)}</h4>
+            <div class="card-title-container">
+                <div class="card-complete-checkbox ${isCompleted ? "checked" : ""}" title="${isCompleted ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành"}">
+                    <i data-lucide="check"></i>
+                </div>
+                <h4 class="${completedClass}">${escapeHTML(task.title)}</h4>
+            </div>
             ${task.desc ? `<p>${escapeHTML(task.desc)}</p>` : ""}
+            ${task.assignee ? `
+            <div class="task-assignee-badge">
+                <i data-lucide="user"></i>
+                <span>${escapeHTML(task.assignee)}</span>
+            </div>
+            ` : ""}
         </div>
         ${subtaskHTML}
+        <!-- Specific Progress Bar -->
+        <div class="task-card-progress">
+            <div class="card-progress-header">
+                <span>Tiến độ</span>
+                <span>${task.progress || 0}%</span>
+            </div>
+            <div class="card-progress-bar-bg">
+                <div class="card-progress-bar-fill" style="width: ${task.progress || 0}%"></div>
+            </div>
+        </div>
         <div class="task-card-footer">
             <div class="task-due-date ${isOverdue ? "is-overdue" : ""}">
                 <i data-lucide="calendar"></i>
@@ -513,6 +569,10 @@ function createTaskCard(task) {
     `;
 
     // Add buttons click event inside cards
+    card.querySelector(".card-complete-checkbox").addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleTaskCompletion(task.id);
+    });
     card.querySelector(".edit-btn").addEventListener("click", (e) => {
         e.stopPropagation();
         openModal(task.id);
@@ -539,18 +599,12 @@ function renderListView(filteredTasks) {
         emptyState.style.display = "none";
     }
 
-    // Status map names in Vietnamese
-    const statusVietnamese = {
-        todo: "Cần làm",
-        inprogress: "Đang làm",
-        review: "Đang duyệt",
-        completed: "Đã xong"
-    };
-
     filteredTasks.forEach(task => {
         // Overdue check
         const todayStr = new Date().toISOString().split('T')[0];
         const isOverdue = task.status !== "completed" && task.dueDate < todayStr;
+        const isCompleted = task.status === "completed";
+        const completedClass = isCompleted ? "completed-text" : "";
 
         // Subtask rendering
         let subtasksProgress = "-";
@@ -560,7 +614,7 @@ function renderListView(filteredTasks) {
             const pct = Math.round((comp / total) * 100);
             subtasksProgress = `
                 <div class="list-progress-bar-container">
-                    <span>${comp}/${total}</span>
+                    <span>${comp}/${total} (${pct}%)</span>
                     <div class="list-progress-bar-bg">
                         <div class="card-progress-bar-fill" style="width: ${pct}%"></div>
                     </div>
@@ -568,14 +622,34 @@ function renderListView(filteredTasks) {
             `;
         }
 
+        // Specific task progress rendering
+        const taskProgressHTML = `
+            <div class="list-progress-bar-container">
+                <span>${task.progress || 0}%</span>
+                <div class="list-progress-bar-bg">
+                    <div class="card-progress-bar-fill" style="width: ${task.progress || 0}%"></div>
+                </div>
+            </div>
+        `;
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>
-                <span class="status-badge status-${task.status}">${statusVietnamese[task.status] || task.status}</span>
+                <div class="card-complete-checkbox ${isCompleted ? "checked" : ""}" title="${isCompleted ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành"}">
+                    <i data-lucide="check"></i>
+                </div>
             </td>
             <td>
-                <div class="list-task-title">${escapeHTML(task.title)}</div>
+                <div class="list-task-title ${completedClass}">${escapeHTML(task.title)}</div>
                 ${task.desc ? `<div class="list-task-desc">${escapeHTML(task.desc)}</div>` : ""}
+            </td>
+            <td>
+                ${task.assignee ? `
+                <span class="task-assignee-badge">
+                    <i data-lucide="user"></i>
+                    <span>${escapeHTML(task.assignee)}</span>
+                </span>
+                ` : "-"}
             </td>
             <td>
                 <span class="task-tag cat-${task.category ? task.category.toLowerCase() : "default"}">${task.category}</span>
@@ -590,6 +664,7 @@ function renderListView(filteredTasks) {
                     <span>${task.priority === "high" ? "Cao" : task.priority === "medium" ? "Trung bình" : "Thấp"}</span>
                 </div>
             </td>
+            <td>${taskProgressHTML}</td>
             <td>${subtasksProgress}</td>
             <td>
                 <div class="list-actions">
@@ -603,6 +678,10 @@ function renderListView(filteredTasks) {
             </td>
         `;
 
+        tr.querySelector(".card-complete-checkbox").addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleTaskCompletion(task.id);
+        });
         tr.querySelector(".edit-list-btn").addEventListener("click", () => openModal(task.id));
         tr.querySelector(".delete-list-btn").addEventListener("click", () => handleDeleteTask(task.id));
 
@@ -665,9 +744,17 @@ function handleMoveTask(taskId, newStatus) {
 
     task.status = newStatus;
     
-    // Auto complete subtasks if moved to completed
-    if (newStatus === "completed" && task.subtasks) {
-        task.subtasks.forEach(sub => sub.completed = true);
+    // Drag drop sync logic
+    if (newStatus === "completed") {
+        task.progress = 100;
+        if (task.subtasks) {
+            task.subtasks.forEach(sub => sub.completed = true);
+        }
+    } else {
+        // Dragged out of completed
+        if (oldStatus === "completed") {
+            task.progress = 80;
+        }
     }
 
     saveTasks();
@@ -678,6 +765,26 @@ function handleMoveTask(taskId, newStatus) {
     if (newStatus === "completed" && oldStatus !== "completed") {
         triggerConfettiCelebration();
     }
+}
+
+function toggleTaskCompletion(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const wasCompleted = task.status === "completed";
+    if (wasCompleted) {
+        task.status = "todo";
+        task.progress = 0;
+    } else {
+        task.status = "completed";
+        task.progress = 100;
+        if (task.subtasks) {
+            task.subtasks.forEach(s => s.completed = true);
+        }
+        triggerConfettiCelebration();
+    }
+    saveTasks();
+    renderSidebarCategories();
+    renderAll();
 }
 
 // --- Delete Task Logic ---
@@ -708,6 +815,12 @@ function openModal(editingTaskId = null) {
             taskDescInput.value = task.desc || "";
             taskDateInput.value = task.dueDate;
             taskCategoryInput.value = task.category;
+            taskAssigneeInput.value = task.assignee || "";
+            taskStatusInput.value = task.status || "todo";
+            
+            const progressVal = task.progress !== undefined ? task.progress : 0;
+            taskProgressInput.value = progressVal;
+            progressValLabel.textContent = `${progressVal}%`;
             
             // Radio priority check
             const radio = taskForm.querySelector(`input[name="priority"][value="${task.priority}"]`);
@@ -722,6 +835,10 @@ function openModal(editingTaskId = null) {
         modalTitle.textContent = "Tạo Công Việc Mới";
         taskIdInput.value = "";
         taskForm.reset();
+        taskAssigneeInput.value = "";
+        taskStatusInput.value = "todo";
+        taskProgressInput.value = 0;
+        progressValLabel.textContent = "0%";
         // default priority
         taskForm.querySelector('input[name="priority"][value="low"]').checked = true;
     }
@@ -795,6 +912,16 @@ function handleFormSubmit(e) {
     const dueDate = taskDateInput.value;
     const category = taskCategoryInput.value;
     const priority = taskForm.querySelector('input[name="priority"]:checked').value;
+    const assignee = taskAssigneeInput.value.trim();
+    let status = taskStatusInput.value;
+    let progress = parseInt(taskProgressInput.value);
+
+    // Double check status and progress sync
+    if (progress === 100) {
+        status = "completed";
+    } else if (status === "completed") {
+        progress = 100;
+    }
 
     if (title === "") return;
 
@@ -809,21 +936,17 @@ function handleFormSubmit(e) {
             task.dueDate = dueDate;
             task.category = category;
             task.priority = priority;
+            task.assignee = assignee;
+            task.status = status;
+            task.progress = progress;
             task.subtasks = [...tempSubtasks];
 
-            // If subtasks are added, keep status sync logic if relevant
-            // Let's check if all subtasks are finished, we DO NOT auto-set status completed,
-            // but if task status is completed, all subtasks should be marked completed
-            if (task.status === "completed" && task.subtasks.some(s => !s.completed)) {
-                // If user marks a task completed in list but subtask isn't, or vice-versa, keep it flexible
+            if (status === "completed" && !wasCompleted) {
+                task.subtasks.forEach(s => s.completed = true);
+                triggerConfettiCelebration();
             }
 
             saveTasks();
-            
-            // Trigger confetti if newly completed
-            if (task.status === "completed" && !wasCompleted) {
-                triggerConfettiCelebration();
-            }
         }
     } else {
         // Add new task
@@ -834,10 +957,17 @@ function handleFormSubmit(e) {
             dueDate: dueDate,
             category: category,
             priority: priority,
-            status: "todo",
+            assignee: assignee,
+            status: status,
+            progress: progress,
             subtasks: [...tempSubtasks],
             createdAt: Date.now()
         };
+
+        if (status === "completed") {
+            newTask.subtasks.forEach(s => s.completed = true);
+            triggerConfettiCelebration();
+        }
 
         tasks.push(newTask);
         saveTasks();
