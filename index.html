@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZenTask — Trình Quản Lý Công Việc Hiện Đại & Cao Cấp</title>
-    <meta name="description" content="ZenTask là ứng dụng quản lý công việc cá nhân cao cấp, trực quan với bảng Kanban kéo thả, biểu đồ thống kê, và giao diện Glassmorphism tuyệt đẹp.">
+    <title>TG-Task — Trình Quản Lý Công Việc Hiện Đại & Cao Cấp</title>
+    <meta name="description" content="TG-Task là ứng dụng quản lý công việc cá nhân cao cấp, trực quan với bảng Kanban kéo thả, biểu đồ thống kê, và giao diện Glassmorphism tuyệt đẹp.">
     
     <!-- Google Fonts: Inter & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@
                 <div class="brand-icon">
                     <i data-lucide="sparkles"></i>
                 </div>
-                <h2>ZenTask</h2>
+                <h2>TG-Task</h2>
             </div>
             
             <div class="sidebar-section">
@@ -101,63 +101,76 @@
                 </div>
             </header>
 
-            <!-- Dashboard Analytics -->
-            <section class="dashboard-analytics">
-                <div class="analytics-grid">
-                    <!-- Total Tasks -->
-                    <div class="stat-card stat-total">
-                        <div class="stat-icon-wrapper">
-                            <i data-lucide="layers"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-label">Tổng công việc</span>
-                            <h3 class="stat-value" id="stat-total-count">0</h3>
-                        </div>
+            <!-- Dashboard Analytics & Period Selector -->
+            <section class="dashboard-analytics-section">
+                <div class="analytics-header-row">
+                    <div class="analytics-title-group">
+                        <i data-lucide="trending-up"></i>
+                        <h2>Hiệu suất công việc</h2>
                     </div>
-                    <!-- In Progress -->
-                    <div class="stat-card stat-progress">
-                        <div class="stat-icon-wrapper">
-                            <i data-lucide="clock"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-label">Đang thực hiện</span>
-                            <h3 class="stat-value" id="stat-progress-count">0</h3>
-                        </div>
-                    </div>
-                    <!-- Overdue -->
-                    <div class="stat-card stat-overdue">
-                        <div class="stat-icon-wrapper">
-                            <i data-lucide="alert-triangle"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-label">Quá hạn chót</span>
-                            <h3 class="stat-value" id="stat-overdue-count">0</h3>
-                        </div>
-                    </div>
-                    <!-- Completed -->
-                    <div class="stat-card stat-completed">
-                        <div class="stat-icon-wrapper">
-                            <i data-lucide="check-circle-2"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-label">Đã hoàn thành</span>
-                            <h3 class="stat-value" id="stat-completed-count">0</h3>
-                        </div>
+                    <div class="analytics-period-selector">
+                        <button class="period-btn active" data-period="all">Tất cả</button>
+                        <button class="period-btn" data-period="week">Tuần này</button>
+                        <button class="period-btn" data-period="month">Tháng này</button>
                     </div>
                 </div>
-
-                <!-- Progress Ring Card -->
-                <div class="progress-ring-card">
-                    <div class="progress-ring-container">
-                        <svg class="progress-ring" width="100" height="100">
-                            <circle class="progress-ring__circle-bg" stroke="var(--bg-card-border)" stroke-width="8" fill="transparent" r="42" cx="50" cy="50"/>
-                            <circle class="progress-ring__circle" id="progress-circle" stroke="var(--color-primary)" stroke-width="8" fill="transparent" r="42" cx="50" cy="50"/>
-                        </svg>
-                        <div class="progress-ring-percentage" id="progress-percentage-text">0%</div>
+                <div class="dashboard-analytics">
+                    <div class="analytics-grid">
+                        <!-- Total Tasks -->
+                        <div class="stat-card stat-total">
+                            <div class="stat-icon-wrapper">
+                                <i data-lucide="layers"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Tổng công việc</span>
+                                <h3 class="stat-value" id="stat-total-count">0</h3>
+                            </div>
+                        </div>
+                        <!-- In Progress -->
+                        <div class="stat-card stat-progress">
+                            <div class="stat-icon-wrapper">
+                                <i data-lucide="clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Đang thực hiện</span>
+                                <h3 class="stat-value" id="stat-progress-count">0</h3>
+                            </div>
+                        </div>
+                        <!-- Overdue -->
+                        <div class="stat-card stat-overdue">
+                            <div class="stat-icon-wrapper">
+                                <i data-lucide="alert-triangle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Quá hạn chót</span>
+                                <h3 class="stat-value" id="stat-overdue-count">0</h3>
+                            </div>
+                        </div>
+                        <!-- Completed -->
+                        <div class="stat-card stat-completed">
+                            <div class="stat-icon-wrapper">
+                                <i data-lucide="check-circle-2"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Đã hoàn thành</span>
+                                <h3 class="stat-value" id="stat-completed-count">0</h3>
+                            </div>
+                        </div>
                     </div>
-                    <div class="progress-ring-info">
-                        <h4>Hiệu suất hoàn thành</h4>
-                        <p id="progress-ring-desc">Hãy lập kế hoạch và hoàn thành công việc đầu tiên!</p>
+
+                    <!-- Progress Ring Card -->
+                    <div class="progress-ring-card">
+                        <div class="progress-ring-container">
+                            <svg class="progress-ring" width="100" height="100">
+                                <circle class="progress-ring__circle-bg" stroke="var(--bg-card-border)" stroke-width="8" fill="transparent" r="42" cx="50" cy="50"/>
+                                <circle class="progress-ring__circle" id="progress-circle" stroke="var(--color-primary)" stroke-width="8" fill="transparent" r="42" cx="50" cy="50"/>
+                            </svg>
+                            <div class="progress-ring-percentage" id="progress-percentage-text">0%</div>
+                        </div>
+                        <div class="progress-ring-info">
+                            <h4>Hiệu suất hoàn thành</h4>
+                            <p id="progress-ring-desc">Hãy lập kế hoạch và hoàn thành công việc đầu tiên!</p>
+                        </div>
                     </div>
                 </div>
             </section>

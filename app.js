@@ -1,5 +1,5 @@
 /**
- * ZenTask — Premium Task Management Application Logic
+ * TG-Task — Premium Task Management Application Logic
  * Implemented using Vanilla JS and LocalStorage
  */
 
@@ -7,7 +7,7 @@
 const DEFAULT_TASKS = [
     {
         id: "task-mock-1",
-        title: "Thiết kế Landing Page ZenTask",
+        title: "Thiết kế Landing Page TG-Task",
         desc: "Xây dựng bản vẽ Figma, chuẩn bị hệ thống màu sắc Glassmorphism và tối ưu hóa các hình ảnh minh họa cho trang chủ.",
         dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 days later
         category: "Work",
@@ -87,6 +87,7 @@ let searchQuery = "";
 let priorityFilter = "all";
 let sortBy = "dueDateAsc";
 let currentTheme = "dark";
+let currentPeriodFilter = "all"; // 'all' | 'week' | 'month'
 
 // --- DOM Elements ---
 const viewBoardBtn = document.getElementById("view-board-btn");
@@ -144,6 +145,9 @@ const importFileInput = document.getElementById("import-file-input");
 const confettiCanvas = document.getElementById("confetti-canvas");
 const ctx = confettiCanvas.getContext("2d");
 
+// Period Selectors
+const periodBtns = document.querySelectorAll(".period-btn");
+
 // --- Initialization ---
 document.addEventListener("DOMContentLoaded", () => {
     loadTheme();
@@ -159,7 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // --- Theme Handling ---
 function loadTheme() {
-    const savedTheme = localStorage.getItem("zentask_theme");
+    const savedTheme = localStorage.getItem("tgtask_theme") || localStorage.getItem("zentask_theme");
     if (savedTheme) {
         currentTheme = savedTheme;
     } else {
@@ -182,7 +186,7 @@ function updateThemeToggleUI() {
 function toggleTheme() {
     currentTheme = currentTheme === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", currentTheme);
-    localStorage.setItem("zentask_theme", currentTheme);
+    localStorage.setItem("tgtask_theme", currentTheme);
     updateThemeToggleUI();
 }
 
@@ -202,7 +206,17 @@ function setGreeting() {
 
 // --- Tasks Local Storage ---
 function loadTasks() {
-    const stored = localStorage.getItem("zentask_tasks");
+    let stored = localStorage.getItem("tgtask_tasks");
+    if (!stored) {
+        // Fallback sang khóa dữ liệu cũ zentask_tasks của ZenTask
+        stored = localStorage.getItem("zentask_tasks");
+        if (stored) {
+            // Di trú dữ liệu sang khóa mới
+            localStorage.setItem("tgtask_tasks", stored);
+            localStorage.removeItem("zentask_tasks");
+        }
+    }
+
     if (stored) {
         try {
             tasks = JSON.parse(stored);
@@ -217,7 +231,47 @@ function loadTasks() {
 }
 
 function saveTasks() {
-    localStorage.setItem("zentask_tasks", JSON.stringify(tasks));
+    localStorage.setItem("tgtask_tasks", JSON.stringify(tasks));
+}
+
+// --- Period Filtering Logic ---
+function getTasksFilteredByPeriod(taskList) {
+    if (currentPeriodFilter === "all") return taskList;
+    
+    const today = new Date();
+    
+    if (currentPeriodFilter === "week") {
+        // Tuần này: Hạn chót từ Thứ Hai đầu tuần đến Chủ Nhật cuối tuần
+        const dayOfWeek = today.getDay(); // 0: Chủ nhật, 1: Thứ hai, ..., 6: Thứ bảy
+        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + diffToMonday);
+        monday.setHours(0, 0, 0, 0);
+        
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+        
+        const startStr = monday.toISOString().split('T')[0];
+        const endStr = sunday.toISOString().split('T')[0];
+        
+        return taskList.filter(t => t.dueDate >= startStr && t.dueDate <= endStr);
+    } else if (currentPeriodFilter === "month") {
+        // Tháng này: Hạn chót từ ngày 1 đầu tháng hiện tại đến ngày cuối cùng của tháng đó
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        firstDay.setHours(0, 0, 0, 0);
+        
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        lastDay.setHours(23, 59, 59, 999);
+        
+        const startStr = firstDay.toISOString().split('T')[0];
+        const endStr = lastDay.toISOString().split('T')[0];
+        
+        return taskList.filter(t => t.dueDate >= startStr && t.dueDate <= endStr);
+    }
+    
+    return taskList;
 }
 
 // --- Setup Event Listeners ---
@@ -242,6 +296,17 @@ function setupEventListeners() {
 
     // Theme toggle
     themeToggleBtn.addEventListener("click", toggleTheme);
+
+    // Period selectors click
+    periodBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            periodBtns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            currentPeriodFilter = btn.dataset.period;
+            renderSidebarCategories();
+            renderAll();
+        });
+    });
 
     // Mobile Sidebar toggle
     sidebarToggleMobileBtn.addEventListener("click", (e) => {
@@ -316,9 +381,10 @@ function switchView(view) {
 function renderSidebarCategories() {
     categoryFilterList.innerHTML = "";
     CATEGORIES.forEach(cat => {
+        const periodFilteredTasks = getTasksFilteredByPeriod(tasks);
         const count = cat.id === "all" 
-            ? tasks.length 
-            : tasks.filter(t => t.category === cat.id).length;
+            ? periodFilteredTasks.length 
+            : periodFilteredTasks.filter(t => t.category === cat.id).length;
         
         const btn = document.createElement("button");
         btn.className = `category-btn ${currentCategoryFilter === cat.id ? "active" : ""}`;
@@ -343,13 +409,14 @@ function renderSidebarCategories() {
 
 // --- Analytics Update ---
 function updateAnalytics() {
-    const total = tasks.length;
-    const inProgress = tasks.filter(t => t.status === "inprogress").length;
-    const completed = tasks.filter(t => t.status === "completed").length;
+    const periodTasks = getTasksFilteredByPeriod(tasks);
+    const total = periodTasks.length;
+    const inProgress = periodTasks.filter(t => t.status === "inprogress").length;
+    const completed = periodTasks.filter(t => t.status === "completed").length;
     
     // Calculate Overdue
     const todayStr = new Date().toISOString().split('T')[0];
-    const overdue = tasks.filter(t => t.status !== "completed" && t.dueDate < todayStr).length;
+    const overdue = periodTasks.filter(t => t.status !== "completed" && t.dueDate < todayStr).length;
 
     statTotalCount.textContent = total;
     statProgressCount.textContent = inProgress;
@@ -388,7 +455,7 @@ function updateAnalytics() {
 
 // --- Filtering & Sorting Core logic ---
 function getFilteredAndSortedTasks() {
-    let result = [...tasks];
+    let result = getTasksFilteredByPeriod(tasks);
 
     // 1. Category Filter
     if (currentCategoryFilter !== "all") {
@@ -983,7 +1050,7 @@ function exportData() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tasks, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `zentask_backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.setAttribute("download", `tgtask_backup_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
