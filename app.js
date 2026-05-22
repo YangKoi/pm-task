@@ -78,6 +78,19 @@ const CATEGORIES = [
     { id: "Learning", name: "📚 Học tập", icon: "book-open" }
 ];
 
+// --- Default Firebase Configuration (Zero-Config Fallback) ---
+// HƯỚNG DẪN DÀNH CHO NHÀ PHÁT TRIỂN (DEVELOPER):
+// Tạo một dự án Firebase dùng chung và điền cấu hình Web App của bạn dưới đây.
+// Người dùng phổ thông sẽ có thể sử dụng ngay nút "Đăng nhập Google" mà không cần bất kỳ cấu hình nào.
+const DEFAULT_FIREBASE_CONFIG = {
+    apiKey: "",          // <-- Điền API Key của dự án dùng chung để kích hoạt Zero-Config
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+};
+
 // --- Application State ---
 let tasks = [];
 let tempSubtasks = []; // Temporary subtasks array for modal form
@@ -96,6 +109,7 @@ let db = null;
 let auth = null;
 let currentUser = null;
 let isFirebaseConfigured = false;
+let activeFirebaseConfigType = "none"; // 'none' | 'default' | 'custom'
 let isSyncing = false;
 
 // --- DOM Elements ---
@@ -157,6 +171,9 @@ const cloudConfigModal = document.getElementById("cloud-config-modal");
 const closeCloudModalBtn = document.getElementById("close-cloud-modal-btn");
 const cancelCloudModalBtn = document.getElementById("cancel-cloud-modal-btn");
 const cloudConfigForm = document.getElementById("cloud-config-form");
+const resetCloudConfigBtn = document.getElementById("reset-cloud-config-btn");
+const cloudStatusBanner = document.getElementById("cloud-status-banner");
+const cloudStatusText = document.getElementById("cloud-status-text");
 
 const cloudApiKey = document.getElementById("cloud-apiKey");
 const cloudAuthDomain = document.getElementById("cloud-authDomain");
@@ -278,22 +295,37 @@ async function saveTasks() {
 // --- Firebase Initialization & Methods ---
 function initFirebase() {
     let config = null;
+    let isCustom = false;
+    
+    // 1. Đọc cấu hình cá nhân từ LocalStorage
     try {
         const storedConfig = localStorage.getItem("tgtask_firebase_config");
         if (storedConfig) {
             config = JSON.parse(storedConfig);
+            isCustom = true;
         }
     } catch (e) {
         console.error("Lỗi đọc cấu hình Firebase từ LocalStorage:", e);
     }
 
-    updateCloudConfigBadge(config !== null);
+    // 2. Tự động fallback sang cấu hình mặc định nếu không có cấu hình cá nhân
+    if (!config && DEFAULT_FIREBASE_CONFIG && DEFAULT_FIREBASE_CONFIG.apiKey) {
+        config = DEFAULT_FIREBASE_CONFIG;
+        isCustom = false;
+    }
 
-    if (!config) {
+    // Badge trên Sidebar biểu thị đã thiết lập cấu hình Cloud (hiện chấm nhỏ màu tím)
+    // Nó sáng lên khi có cấu hình cá nhân hoạt động
+    updateCloudConfigBadge(isCustom);
+
+    if (!config || !config.apiKey) {
         isFirebaseConfigured = false;
+        activeFirebaseConfigType = "none";
         renderUserProfile();
         return;
     }
+
+    activeFirebaseConfigType = isCustom ? "custom" : "default";
 
     try {
         if (window.firebase && firebase.apps.length === 0) {
@@ -322,11 +354,13 @@ function initFirebase() {
             });
         } else {
             isFirebaseConfigured = false;
+            activeFirebaseConfigType = "none";
             renderUserProfile();
         }
     } catch (e) {
         console.error("Lỗi khởi tạo Firebase:", e);
         isFirebaseConfigured = false;
+        activeFirebaseConfigType = "none";
         renderUserProfile();
     }
 }
@@ -353,7 +387,7 @@ function renderUserProfile() {
                     <i data-lucide="cloud-off"></i>
                     <span>Chưa cấu hình Cloud</span>
                 </button>
-                <p class="profile-tip" style="cursor: pointer; text-decoration: underline;" id="cloud-setup-tip">Click để Cấu hình Cloud</p>
+                <p class="profile-tip" style="cursor: pointer; text-decoration: underline;" id="cloud-setup-tip">Click để cấu hình Cloud cá nhân</p>
             </div>
         `;
         const setupTip = document.getElementById("cloud-setup-tip");
@@ -368,13 +402,14 @@ function renderUserProfile() {
             </div>
         `;
     } else if (!currentUser) {
+        const configTip = activeFirebaseConfigType === "default" ? "Đồng bộ đám mây tự động" : "Đồng bộ đám mây riêng";
         userProfileSection.innerHTML = `
             <div class="user-profile-card unauthenticated">
                 <button class="btn-login-google" id="login-google-btn">
                     <i data-lucide="log-in"></i>
                     <span>Đăng nhập Google</span>
                 </button>
-                <p class="profile-tip">Đồng bộ Cloud đa thiết bị</p>
+                <p class="profile-tip">${configTip}</p>
             </div>
         `;
         const loginBtn = document.getElementById("login-google-btn");
@@ -382,6 +417,9 @@ function renderUserProfile() {
     } else {
         const photoUrl = currentUser.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80";
         const displayName = currentUser.displayName || "Người dùng TG-Task";
+        const isDefault = activeFirebaseConfigType === "default";
+        const syncText = isDefault ? "Đã đồng bộ Cloud" : "Đồng bộ Cloud riêng";
+        const badgeStyle = isDefault ? "" : "background-color: #10b981; box-shadow: 0 0 8px #10b981;";
         
         userProfileSection.innerHTML = `
             <div class="user-profile-card authenticated">
@@ -391,8 +429,8 @@ function renderUserProfile() {
                 <div class="user-details">
                     <h4 class="user-name" title="${displayName}">${displayName}</h4>
                     <div class="sync-status">
-                        <span class="sync-badge"></span>
-                        <span>Đã đồng bộ Cloud</span>
+                        <span class="sync-badge" style="${badgeStyle}"></span>
+                        <span class="sync-text-status" style="font-size: 0.7rem; font-weight: 500; opacity: 0.85;">${syncText}</span>
                     </div>
                 </div>
                 <button class="btn-logout" id="logout-btn" title="Đăng xuất">
@@ -684,6 +722,9 @@ function setupEventListeners() {
     }
     if (cloudConfigForm) {
         cloudConfigForm.addEventListener("submit", handleCloudConfigSubmit);
+    }
+    if (resetCloudConfigBtn) {
+        resetCloudConfigBtn.addEventListener("click", handleResetCloudConfig);
     }
 }
 
@@ -1551,6 +1592,14 @@ function animateConfetti() {
 function openCloudConfigModal() {
     if (!cloudConfigModal) return;
     
+    // Đặt lại các giá trị input trống mặc định
+    cloudApiKey.value = "";
+    cloudAuthDomain.value = "";
+    cloudProjectId.value = "";
+    cloudStorageBucket.value = "";
+    cloudMessagingSenderId.value = "";
+    cloudAppId.value = "";
+
     try {
         const stored = localStorage.getItem("tgtask_firebase_config");
         if (stored) {
@@ -1566,7 +1615,28 @@ function openCloudConfigModal() {
         console.error("Lỗi điền dữ liệu config:", e);
     }
     
+    // Cập nhật Banner trạng thái động và hiển thị nút reset tương ứng
+    if (cloudStatusBanner && cloudStatusText) {
+        // Loại bỏ các class style cũ
+        cloudStatusBanner.className = "cloud-status-banner";
+        
+        if (activeFirebaseConfigType === "custom") {
+            cloudStatusBanner.classList.add("status-custom");
+            cloudStatusText.innerHTML = `<strong>Chế độ Cá nhân:</strong> Bạn đang sử dụng cấu hình Firebase cá nhân để kiểm soát và lưu trữ dữ liệu hoàn toàn độc lập.`;
+            if (resetCloudConfigBtn) resetCloudConfigBtn.style.display = "inline-flex";
+        } else if (activeFirebaseConfigType === "default") {
+            cloudStatusBanner.classList.add("status-default");
+            cloudStatusText.innerHTML = `<strong>Chế độ Đám mây tự động:</strong> TG-Task đã được cấu hình sẵn. Mọi tính năng đồng bộ đám mây đã sẵn sàng, bạn chỉ cần nhấn <strong>Đăng nhập Google</strong>!`;
+            if (resetCloudConfigBtn) resetCloudConfigBtn.style.display = "none";
+        } else {
+            cloudStatusBanner.classList.add("status-none");
+            cloudStatusText.innerHTML = `<strong>Chưa có Đám mây:</strong> Ứng dụng hiện đang lưu dữ liệu offline trong trình duyệt. Vui lòng thiết lập cấu hình Firebase cá nhân để kích hoạt đồng bộ.`;
+            if (resetCloudConfigBtn) resetCloudConfigBtn.style.display = "none";
+        }
+    }
+
     cloudConfigModal.classList.add("active");
+    if (window.lucide) lucide.createIcons();
 }
 
 function closeCloudConfigModal() {
@@ -1589,11 +1659,24 @@ function handleCloudConfigSubmit(e) {
     try {
         localStorage.setItem("tgtask_firebase_config", JSON.stringify(config));
         closeCloudConfigModal();
-        alert("Đã lưu cấu hình Cloud thành công! TG-Task đang kết nối dữ liệu...");
-        
-        initFirebase();
+        alert("Đã lưu cấu hình Cloud cá nhân thành công! Ứng dụng sẽ tự động tải lại để khởi tạo dịch vụ đám mây của bạn...");
+        window.location.reload();
     } catch (e) {
         console.error("Lỗi lưu cấu hình Firebase:", e);
         alert("Có lỗi xảy ra khi lưu cấu hình.");
+    }
+}
+
+function handleResetCloudConfig() {
+    if (confirm("Bạn có chắc chắn muốn xóa cấu hình Cloud cá nhân và khôi phục về chế độ Đám mây tự động mặc định của dự án TG-Task không?")) {
+        try {
+            localStorage.removeItem("tgtask_firebase_config");
+            closeCloudConfigModal();
+            alert("Đã khôi phục cấu hình mặc định dùng chung thành công! Ứng dụng đang tự khởi động lại...");
+            window.location.reload();
+        } catch (e) {
+            console.error("Lỗi đặt lại cấu hình Firebase:", e);
+            alert("Lỗi khi đặt lại cấu hình.");
+        }
     }
 }

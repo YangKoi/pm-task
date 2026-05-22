@@ -441,8 +441,14 @@
                 <button class="close-modal-btn" id="close-cloud-modal-btn" aria-label="Đóng">&times;</button>
             </div>
             <div class="modal-body">
+                <!-- Status dynamic banner -->
+                <div class="cloud-status-banner status-none" id="cloud-status-banner">
+                    <i data-lucide="info"></i>
+                    <span id="cloud-status-text">Đang kiểm tra kết nối đám mây...</span>
+                </div>
+
                 <p class="cloud-modal-desc">
-                    TG-Task sử dụng cơ sở dữ liệu **Google Firebase** để lưu trữ và đồng bộ hóa công việc của bạn. Hãy dán cấu hình Firebase Web App của bạn dưới đây để bắt đầu đồng bộ đám mây.
+                    TG-Task hỗ trợ **Google Firebase** để lưu trữ và đồng bộ hóa công việc thời gian thực. Theo mặc định, chế độ tự động dùng chung đã được kích hoạt. Lập trình viên hoặc người dùng nâng cao có thể nhập thông tin dự án riêng của mình ở đây để làm chủ hoàn toàn dữ liệu cá nhân.
                 </p>
                 <form id="cloud-config-form">
                     <div class="form-group">
@@ -475,15 +481,20 @@
                     </div>
                     
                     <div class="cloud-instructions">
-                        <h4>💡 Hướng dẫn nhanh:</h4>
+                        <h4>💡 Hướng dẫn nhanh dành cho lập trình viên:</h4>
                         <ol>
-                            <li>Truy cập <a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebase Console</a> và tạo một Dự án mới.</li>
-                            <li>Tạo ứng dụng Web trong dự án của bạn để lấy đoạn mã cấu hình JSON.</li>
-                            <li>Kích hoạt **Authentication (Google Sign-In)** và **Cloud Firestore** trên dự án Firebase của bạn.</li>
+                            <li>Truy cập <a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebase Console</a> và tạo dự án cá nhân.</li>
+                            <li>Bật **Authentication (Google Sign-In)** và **Cloud Firestore** với Rules cho phép truy cập theo `uid`.</li>
+                            <li>Bạn có thể cấu hình dự án dùng chung trực tiếp vào hằng số `DEFAULT_FIREBASE_CONFIG` trong tệp `app.js` để kích hoạt chế độ tự động cho toàn bộ người dùng.</li>
                         </ol>
                     </div>
 
                     <div class="modal-actions">
+                        <button type="button" class="btn-reset-cloud" id="reset-cloud-config-btn" style="display: none;" title="Xóa cấu hình cá nhân và quay về chế độ dùng chung mặc định">
+                            <i data-lucide="rotate-ccw"></i>
+                            <span>Khôi phục mặc định</span>
+                        </button>
+                        <div style="flex-grow: 1;"></div>
                         <button type="button" class="btn-cancel" id="cancel-cloud-modal-btn">Hủy bỏ</button>
                         <button type="submit" class="btn-submit" id="save-cloud-config-btn">
                             <i data-lucide="save"></i>
