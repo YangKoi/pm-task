@@ -395,23 +395,6 @@ function renderUserProfile() {
         // 2. Control bottom Google Login button
         if (loginGoogleBtnBottom) {
             loginGoogleBtnBottom.style.display = "flex";
-            
-            // Clean old listeners by replacing
-            const newLoginBtn = loginGoogleBtnBottom.cloneNode(true);
-            loginGoogleBtnBottom.parentNode.replaceChild(newLoginBtn, loginGoogleBtnBottom);
-            
-            newLoginBtn.addEventListener("click", () => {
-                openCloudConfigModal();
-                const modalCard = cloudConfigModal ? cloudConfigModal.querySelector(".modal-card") : null;
-                if (modalCard) {
-                    modalCard.classList.remove("shake-animation");
-                    void modalCard.offsetWidth; // Trigger reflow to restart animation
-                    modalCard.classList.add("shake-animation");
-                    setTimeout(() => {
-                        modalCard.classList.remove("shake-animation");
-                    }, 500);
-                }
-            });
         }
 
         const setupTip = document.getElementById("cloud-setup-tip");
@@ -457,12 +440,6 @@ function renderUserProfile() {
         // 2. Control bottom Google Login button
         if (loginGoogleBtnBottom) {
             loginGoogleBtnBottom.style.display = "flex";
-            
-            // Clean old listeners by replacing
-            const newLoginBtn = loginGoogleBtnBottom.cloneNode(true);
-            loginGoogleBtnBottom.parentNode.replaceChild(newLoginBtn, loginGoogleBtnBottom);
-            
-            newLoginBtn.addEventListener("click", loginWithGoogle);
         }
     } else {
         // Hide bottom Google Login button when successfully authenticated
@@ -511,7 +488,7 @@ async function loginWithGoogle() {
         await auth.signInWithPopup(provider);
     } catch (e) {
         console.error("Lỗi đăng nhập Google:", e);
-        alert("Đăng nhập thất bại: " + e.message);
+        showToast("Đăng nhập thất bại: " + e.message, "error");
         isSyncing = false;
         renderUserProfile();
     }
@@ -780,6 +757,28 @@ function setupEventListeners() {
     }
     if (resetCloudConfigBtn) {
         resetCloudConfigBtn.addEventListener("click", handleResetCloudConfig);
+    }
+
+    // Gán sự kiện click duy nhất cho nút Đăng nhập Google dưới cùng
+    const loginGoogleBtnBottom = document.getElementById("login-google-btn-bottom");
+    if (loginGoogleBtnBottom) {
+        loginGoogleBtnBottom.addEventListener("click", () => {
+            if (!isFirebaseConfigured) {
+                showToast("Hệ thống chưa thiết lập Đám mây dùng chung. Vui lòng bấm 'Cấu hình Cloud' bên trên để tự kết nối dự án của bạn!", "warning");
+                openCloudConfigModal();
+                // Tạo hiệu ứng rung lắc cho modal để thu hút sự chú ý
+                setTimeout(() => {
+                    const modalCard = cloudConfigModal ? cloudConfigModal.querySelector(".modal-card") : null;
+                    if (modalCard) {
+                        modalCard.classList.remove("shake-animation");
+                        void modalCard.offsetWidth;
+                        modalCard.classList.add("shake-animation");
+                    }
+                }, 300);
+            } else {
+                loginWithGoogle();
+            }
+        });
     }
 }
 
@@ -1494,6 +1493,7 @@ function exportData() {
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+    showToast("Đã xuất file sao lưu JSON thành công!", "success");
 }
 
 // --- Import JSON Backup ---
@@ -1514,17 +1514,17 @@ function importData(e) {
                         saveTasks();
                         renderSidebarCategories();
                         renderAll();
-                        alert("Nhập dữ liệu sao lưu thành công!");
+                        showToast("Nhập dữ liệu sao lưu thành công!", "success");
                     }
                 } else {
-                    alert("Định dạng file sao lưu không hợp lệ. Vui lòng kiểm tra lại.");
+                    showToast("Định dạng file sao lưu không hợp lệ. Vui lòng kiểm tra lại.", "error");
                 }
             } else {
-                alert("Nội dung file JSON phải là một mảng các công việc.");
+                showToast("Nội dung file JSON phải là một mảng các công việc.", "error");
             }
         } catch (err) {
             console.error(err);
-            alert("Lỗi khi đọc file sao lưu JSON. Hãy chắc chắn tệp của bạn không bị hỏng.");
+            showToast("Lỗi khi đọc file sao lưu JSON. Hãy chắc chắn tệp của bạn không bị hỏng.", "error");
         }
     };
     reader.readAsText(file);
@@ -1555,9 +1555,9 @@ function formatTimestamp(timestamp) {
     return `${day}/${month}/${year}`;
 }
 
-// ==========================================================================
+// ==========================================
 // Canvas Confetti Celebrations Engine
-// ==========================================================================
+// ==========================================
 let confettiActive = false;
 let confettiParticles = [];
 const confettiColors = ["#8b5cf6", "#a78bfa", "#3b82f6", "#10b981", "#ef4444", "#fbbf24", "#ec4899"];
@@ -1714,11 +1714,11 @@ function handleCloudConfigSubmit(e) {
     try {
         localStorage.setItem("tgtask_firebase_config", JSON.stringify(config));
         closeCloudConfigModal();
-        alert("Đã lưu cấu hình Cloud cá nhân thành công! Ứng dụng sẽ tự động tải lại để khởi tạo dịch vụ đám mây của bạn...");
-        window.location.reload();
+        showToast("Đã lưu cấu hình Cloud cá nhân thành công! Đang tự động tải lại...", "success");
+        setTimeout(() => window.location.reload(), 1500);
     } catch (e) {
         console.error("Lỗi lưu cấu hình Firebase:", e);
-        alert("Có lỗi xảy ra khi lưu cấu hình.");
+        showToast("Có lỗi xảy ra khi lưu cấu hình.", "error");
     }
 }
 
@@ -1727,11 +1727,55 @@ function handleResetCloudConfig() {
         try {
             localStorage.removeItem("tgtask_firebase_config");
             closeCloudConfigModal();
-            alert("Đã khôi phục cấu hình mặc định dùng chung thành công! Ứng dụng đang tự khởi động lại...");
-            window.location.reload();
+            showToast("Đã khôi phục cấu hình mặc định thành công! Đang tự khởi động lại...", "success");
+            setTimeout(() => window.location.reload(), 1500);
         } catch (e) {
             console.error("Lỗi đặt lại cấu hình Firebase:", e);
-            alert("Lỗi khi đặt lại cấu hình.");
+            showToast("Lỗi khi đặt lại cấu hình.", "error");
         }
     }
+}
+
+// ==========================================================================
+// Premium Toast Notifications System (Glassmorphism)
+// ==========================================================================
+function showToast(message, type = "info") {
+    // Tìm hoặc tạo Toast container
+    let container = document.getElementById("toast-container");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "toast-container";
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    
+    let icon = "info";
+    if (type === "success") icon = "check-circle";
+    if (type === "error") icon = "alert-triangle";
+    if (type === "warning") icon = "alert-circle";
+
+    toast.innerHTML = `
+        <i data-lucide="${icon}"></i>
+        <div class="toast-content">${message}</div>
+        <button class="toast-close">&times;</button>
+    `;
+
+    container.appendChild(toast);
+    if (window.lucide) lucide.createIcons();
+
+    // Event click đóng nhanh
+    toast.querySelector(".toast-close").addEventListener("click", () => {
+        toast.classList.add("leaving");
+        setTimeout(() => toast.remove(), 300);
+    });
+
+    // Tự động biến mất sau 4 giây
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.classList.add("leaving");
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 4000);
 }
