@@ -182,6 +182,19 @@ const cloudStorageBucket = document.getElementById("cloud-storageBucket");
 const cloudMessagingSenderId = document.getElementById("cloud-messagingSenderId");
 const cloudAppId = document.getElementById("cloud-appId");
 
+// Auth Modal Elements
+const authModal = document.getElementById("auth-modal");
+const closeAuthModalBtn = document.getElementById("close-auth-modal-btn");
+const tabSigninBtn = document.getElementById("tab-signin-btn");
+const tabSignupBtn = document.getElementById("tab-signup-btn");
+const modalLoginGoogleBtn = document.getElementById("modal-login-google-btn");
+const panelSignin = document.getElementById("panel-signin");
+const panelSignup = document.getElementById("panel-signup");
+const signinForm = document.getElementById("signin-form");
+const signupForm = document.getElementById("signup-form");
+const linkGoSignup = document.getElementById("link-go-signup");
+const linkGoSignin = document.getElementById("link-go-signin");
+
 // Confetti Canvas
 const confettiCanvas = document.getElementById("confetti-canvas");
 const ctx = confettiCanvas.getContext("2d");
@@ -447,16 +460,38 @@ function renderUserProfile() {
             loginGoogleBtnBottom.style.display = "none";
         }
         
-        const photoUrl = currentUser.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80";
-        const displayName = currentUser.displayName || "Người dùng TG-Task";
+        const displayName = currentUser.displayName || currentUser.email || "Người dùng TG-Task";
         const isDefault = activeFirebaseConfigType === "default";
         const syncText = isDefault ? "Đã đồng bộ Cloud" : "Đồng bộ Cloud riêng";
         const badgeStyle = isDefault ? "" : "background-color: #10b981; box-shadow: 0 0 8px #10b981;";
         
+        let avatarHTML = "";
+        if (currentUser.photoURL) {
+            avatarHTML = `<img class="user-avatar" src="${currentUser.photoURL}" referrerpolicy="no-referrer" alt="${displayName}">`;
+        } else {
+            const firstLetter = displayName.charAt(0).toUpperCase();
+            const colors = [
+                "linear-gradient(135deg, #a78bfa 0%, #3b82f6 100%)",
+                "linear-gradient(135deg, #f472b6 0%, #db2777 100%)",
+                "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
+                "linear-gradient(135deg, #34d399 0%, #059669 100%)",
+                "linear-gradient(135deg, #60a5fa 0%, #2563eb 100%)",
+                "linear-gradient(135deg, #f87171 0%, #dc2626 100%)"
+            ];
+            let hash = 0;
+            const uid = currentUser.uid || "";
+            for (let i = 0; i < uid.length; i++) {
+                hash = uid.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const gradientIndex = Math.abs(hash) % colors.length;
+            const gradient = colors[gradientIndex];
+            avatarHTML = `<div class="user-avatar letter-avatar" style="background: ${gradient}">${firstLetter}</div>`;
+        }
+        
         userProfileSection.innerHTML = `
             <div class="user-profile-card authenticated">
                 <div class="user-avatar-wrapper">
-                    <img class="user-avatar" src="${photoUrl}" referrerpolicy="no-referrer" alt="${displayName}">
+                    ${avatarHTML}
                 </div>
                 <div class="user-details">
                     <h4 class="user-name" title="${displayName}">${displayName}</h4>
@@ -478,6 +513,7 @@ function renderUserProfile() {
         lucide.createIcons();
     }
 }
+
 
 async function loginWithGoogle() {
     if (!auth) return;
@@ -776,10 +812,69 @@ function setupEventListeners() {
                     }
                 }, 300);
             } else {
-                loginWithGoogle();
+                openAuthModal();
             }
         });
     }
+
+    // Auth Modal Events
+    if (closeAuthModalBtn) {
+        closeAuthModalBtn.addEventListener("click", closeAuthModal);
+    }
+    if (tabSigninBtn) {
+        tabSigninBtn.addEventListener("click", () => switchAuthTab("signin"));
+    }
+    if (tabSignupBtn) {
+        tabSignupBtn.addEventListener("click", () => switchAuthTab("signup"));
+    }
+    if (linkGoSignup) {
+        linkGoSignup.addEventListener("click", (e) => {
+            e.preventDefault();
+            switchAuthTab("signup");
+        });
+    }
+    if (linkGoSignin) {
+        linkGoSignin.addEventListener("click", (e) => {
+            e.preventDefault();
+            switchAuthTab("signin");
+        });
+    }
+    if (modalLoginGoogleBtn) {
+        modalLoginGoogleBtn.addEventListener("click", async () => {
+            await loginWithGoogle();
+            closeAuthModal();
+        });
+    }
+    if (signinForm) {
+        signinForm.addEventListener("submit", handleSigninSubmit);
+    }
+    if (signupForm) {
+        signupForm.addEventListener("submit", handleSignupSubmit);
+    }
+
+    // Toggle password visibility
+    document.querySelectorAll(".btn-toggle-password").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const targetId = btn.dataset.target;
+            const targetInput = document.getElementById(targetId);
+            if (!targetInput) return;
+            
+            const type = targetInput.getAttribute("type") === "password" ? "text" : "password";
+            targetInput.setAttribute("type", type);
+            
+            const icon = btn.querySelector("i");
+            if (icon) {
+                if (type === "password") {
+                    icon.setAttribute("data-lucide", "eye");
+                } else {
+                    icon.setAttribute("data-lucide", "eye-off");
+                }
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
+            }
+        });
+    });
 }
 
 // --- View Switcher ---
@@ -1733,6 +1828,148 @@ function handleResetCloudConfig() {
             console.error("Lỗi đặt lại cấu hình Firebase:", e);
             showToast("Lỗi khi đặt lại cấu hình.", "error");
         }
+    }
+}
+
+// --- Auth Modal Control ---
+function openAuthModal() {
+    if (!authModal) return;
+    switchAuthTab("signin"); // default tab
+    authModal.classList.add("active");
+}
+
+function closeAuthModal() {
+    if (!authModal) return;
+    authModal.classList.remove("active");
+    // Clear forms
+    if (signinForm) signinForm.reset();
+    if (signupForm) signupForm.reset();
+    // Reset password field types
+    document.querySelectorAll(".auth-input-wrapper input[type='text']").forEach(input => {
+        if (input.id.includes("password")) {
+            input.setAttribute("type", "password");
+            const btn = input.nextElementSibling;
+            if (btn && btn.classList.contains("btn-toggle-password")) {
+                const icon = btn.querySelector("i");
+                if (icon) icon.setAttribute("data-lucide", "eye");
+            }
+        }
+    });
+    if (window.lucide) lucide.createIcons();
+}
+
+function switchAuthTab(tab) {
+    if (tab === "signin") {
+        tabSigninBtn.classList.add("active");
+        tabSignupBtn.classList.remove("active");
+        panelSignin.classList.add("active");
+        panelSignin.style.display = "block";
+        panelSignup.classList.remove("active");
+        panelSignup.style.display = "none";
+    } else {
+        tabSigninBtn.classList.remove("active");
+        tabSignupBtn.classList.add("active");
+        panelSignin.classList.remove("active");
+        panelSignin.style.display = "none";
+        panelSignup.classList.add("active");
+        panelSignup.style.display = "block";
+    }
+}
+
+async function handleSigninSubmit(e) {
+    e.preventDefault();
+    if (!auth) return;
+    
+    const email = document.getElementById("signin-email").value.trim();
+    const password = document.getElementById("signin-password").value;
+    
+    try {
+        isSyncing = true;
+        renderUserProfile();
+        closeAuthModal();
+        await auth.signInWithEmailAndPassword(email, password);
+        showToast("Đăng nhập thành công! Chào mừng quay trở lại.", "success");
+    } catch (error) {
+        console.error("Lỗi đăng nhập Email:", error);
+        let errorMsg = "Đăng nhập thất bại: ";
+        switch (error.code) {
+            case "auth/invalid-email":
+                errorMsg += "Địa chỉ email không hợp lệ.";
+                break;
+            case "auth/user-disabled":
+                errorMsg += "Tài khoản này đã bị vô hiệu hóa.";
+                break;
+            case "auth/user-not-found":
+                errorMsg += "Không tìm thấy tài khoản với email này.";
+                break;
+            case "auth/wrong-password":
+                errorMsg += "Mật khẩu không chính xác.";
+                break;
+            default:
+                errorMsg += error.message;
+        }
+        showToast(errorMsg, "error");
+        isSyncing = false;
+        renderUserProfile();
+        openAuthModal(); // reopen modal so user can correct the password
+    }
+}
+
+async function handleSignupSubmit(e) {
+    e.preventDefault();
+    if (!auth) return;
+    
+    const fullName = document.getElementById("signup-name").value.trim();
+    const email = document.getElementById("signup-email").value.trim();
+    const password = document.getElementById("signup-password").value;
+    const confirmPassword = document.getElementById("signup-confirm-password").value;
+    
+    if (password !== confirmPassword) {
+        showToast("Mật khẩu xác nhận không trùng khớp!", "error");
+        return;
+    }
+    
+    try {
+        isSyncing = true;
+        renderUserProfile();
+        closeAuthModal();
+        
+        // 1. Create the user
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        
+        // 2. Update display name
+        await userCredential.user.updateProfile({
+            displayName: fullName
+        });
+        
+        // Explicitly trigger renderUserProfile to show displayName immediately
+        currentUser = auth.currentUser;
+        renderUserProfile();
+        
+        showToast(`Đăng ký tài khoản thành công! Chào mừng ${fullName}.`, "success");
+    } catch (error) {
+        console.error("Lỗi đăng ký tài khoản:", error);
+        let errorMsg = "Đăng ký thất bại: ";
+        switch (error.code) {
+            case "auth/email-already-in-use":
+                errorMsg += "Địa chỉ email này đã được sử dụng bởi tài khoản khác.";
+                break;
+            case "auth/invalid-email":
+                errorMsg += "Địa chỉ email không hợp lệ.";
+                break;
+            case "auth/operation-not-allowed":
+                errorMsg += "Đăng ký bằng email/mật khẩu chưa được kích hoạt.";
+                break;
+            case "auth/weak-password":
+                errorMsg += "Mật khẩu quá yếu (tối thiểu 6 ký tự).";
+                break;
+            default:
+                errorMsg += error.message;
+        }
+        showToast(errorMsg, "error");
+        isSyncing = false;
+        renderUserProfile();
+        openAuthModal(); // reopen modal so user can correct
     }
 }
 

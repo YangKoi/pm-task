@@ -2037,5 +2037,176 @@ input[type="range"]::-moz-range-thumb:hover {
     to { transform: translateX(120%); opacity: 0; }
 }
 
+/* ==========================================================================
+   Authentication Modal Premium Styles
+   ========================================================================== */
+.auth-card {
+    max-width: 440px !important;
+}
+
+.auth-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--bg-card-border);
+    padding: 0 2rem;
+    gap: 1.5rem;
+}
+
+.auth-tab {
+    padding: 1rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    border-bottom: 2px solid transparent;
+    transition: all var(--transition-fast);
+    background: none;
+    border: none;
+}
+
+.auth-tab:hover {
+    color: var(--color-text);
+}
+
+.auth-tab.active {
+    color: var(--color-primary-light);
+    border-bottom: 2px solid var(--color-primary);
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+}
+
+.btn-auth-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--bg-card-border-hover);
+    border-radius: var(--border-radius-md);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    transition: all var(--transition-fast);
+}
+
+.btn-auth-google:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--bg-card-border);
+}
+
+.auth-divider:not(:empty)::before {
+    margin-right: .75em;
+}
+
+.auth-divider:not(:empty)::after {
+    margin-left: .75em;
+}
+
+/* Auth Inputs with prefix icons and eye toggle buttons */
+.auth-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.auth-input-wrapper .input-icon {
+    position: absolute;
+    left: 14px;
+    color: var(--color-text-muted);
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.auth-input-wrapper input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem !important;
+    background-color: rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--bg-card-border);
+    border-radius: var(--border-radius-md);
+    font-size: 0.9rem;
+    color: var(--color-text);
+    transition: all var(--transition-fast);
+}
+
+[data-theme="light"] .auth-input-wrapper input {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.auth-input-wrapper input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-glow);
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .auth-input-wrapper input:focus {
+    background-color: white;
+}
+
+.btn-toggle-password {
+    position: absolute;
+    right: 14px;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: var(--border-radius-sm);
+    transition: color var(--transition-fast);
+    z-index: 2;
+}
+
+.btn-toggle-password:hover {
+    color: var(--color-text);
+}
+
+.btn-toggle-password i {
+    width: 16px;
+    height: 16px;
+}
+
+/* Premium Letter Avatar for Email accounts */
+.user-profile-card .user-avatar.letter-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--border-radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: white;
+    box-shadow: 0 0 10px var(--color-primary-glow);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+}
+
+
 
 
