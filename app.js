@@ -1566,12 +1566,12 @@ function openCloudConfigModal() {
         console.error("Lỗi điền dữ liệu config:", e);
     }
     
-    cloudConfigModal.style.display = "flex";
+    cloudConfigModal.classList.add("active");
 }
 
 function closeCloudConfigModal() {
     if (!cloudConfigModal) return;
-    cloudConfigModal.style.display = "none";
+    cloudConfigModal.classList.remove("active");
 }
 
 function handleCloudConfigSubmit(e) {
