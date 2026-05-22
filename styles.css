@@ -1609,3 +1609,250 @@ input[type="range"]::-moz-range-thumb:hover {
     transform: scale(1.2);
 }
 
+/* ==========================================================================
+   TG-Task — Firebase Cloud Integration Premium Styles
+   ========================================================================== */
+
+.sidebar-user-profile {
+    margin: 1rem 1.5rem 0.5rem 1.5rem;
+    padding: 0.25rem 0;
+}
+
+.user-profile-card {
+    background: var(--bg-card);
+    border: 1px solid var(--bg-card-border);
+    border-radius: var(--border-radius-md);
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all var(--transition-normal);
+}
+
+.user-profile-card.authenticated {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    border-color: rgba(16, 185, 129, 0.2); /* Subtle green border when authenticated */
+    background: rgba(16, 185, 129, 0.03);
+}
+
+.user-profile-card:hover {
+    border-color: var(--bg-card-border-hover);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Unauthenticated button styling */
+.btn-login-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.825rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px var(--color-primary-glow);
+    transition: all var(--transition-fast);
+}
+
+.btn-login-google:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px var(--color-primary-glow);
+    filter: brightness(1.05);
+}
+
+.btn-login-google i {
+    width: 14px;
+    height: 14px;
+}
+
+.profile-tip {
+    font-size: 0.675rem;
+    color: var(--color-text-muted);
+    text-align: center;
+    margin: 0;
+    opacity: 0.8;
+}
+
+/* Authenticated elements */
+.user-avatar-wrapper {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+}
+
+.user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--border-radius-full);
+    border: 2px solid var(--color-primary-light);
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.user-name {
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+}
+
+.sync-status {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+}
+
+.sync-badge {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--border-radius-full);
+    background-color: #10b981; /* Green */
+    box-shadow: 0 0 8px #10b981;
+    animation: sync-pulse 1.8s infinite ease-in-out;
+}
+
+@keyframes sync-pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.btn-logout {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0.35rem;
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.btn-logout:hover {
+    background-color: var(--bg-card-border-hover);
+    color: var(--color-overdue);
+}
+
+.btn-logout i {
+    width: 15px;
+    height: 15px;
+}
+
+.user-profile-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.user-profile-loading i.spin {
+    animation: loader-spin 1s infinite linear;
+}
+
+@keyframes loader-spin {
+    100% { transform: rotate(360deg); }
+}
+
+/* Cloud Configuration Modal & Form Customizations */
+.cloud-modal {
+    max-width: 480px !important;
+}
+
+.cloud-modal-desc {
+    font-size: 0.825rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+}
+
+.cloud-instructions {
+    margin-top: 1.25rem;
+    padding: 0.85rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed var(--bg-card-border);
+    border-radius: var(--border-radius-sm);
+}
+
+.cloud-instructions h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.cloud-instructions ol {
+    margin: 0;
+    padding-left: 1.2rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    line-height: 1.45;
+}
+
+.cloud-instructions li {
+    margin-bottom: 0.35rem;
+}
+
+.cloud-instructions a {
+    color: var(--color-primary-light);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.cloud-instructions a:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+}
+
+/* Style for Firebase configuration badge on Cloud Settings button */
+#cloud-config-btn {
+    position: relative;
+}
+
+.cloud-configured-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: var(--border-radius-full);
+    background-color: var(--color-primary-light);
+    box-shadow: 0 0 6px var(--color-primary);
+}
+

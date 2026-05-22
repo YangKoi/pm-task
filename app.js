@@ -90,6 +90,14 @@ let currentTheme = "dark";
 let currentPeriodFilter = "all"; // 'all' | 'week' | 'month'
 let currentDateFilter = ""; // 'YYYY-MM-DD' | ''
 
+// --- Firebase State ---
+let firebaseApp = null;
+let db = null;
+let auth = null;
+let currentUser = null;
+let isFirebaseConfigured = false;
+let isSyncing = false;
+
 // --- DOM Elements ---
 const viewBoardBtn = document.getElementById("view-board-btn");
 const viewListBtn = document.getElementById("view-list-btn");
@@ -142,6 +150,21 @@ const exportBtn = document.getElementById("export-btn");
 const importTriggerBtn = document.getElementById("import-trigger-btn");
 const importFileInput = document.getElementById("import-file-input");
 
+// Firebase UI Elements
+const userProfileSection = document.getElementById("user-profile-section");
+const cloudConfigBtn = document.getElementById("cloud-config-btn");
+const cloudConfigModal = document.getElementById("cloud-config-modal");
+const closeCloudModalBtn = document.getElementById("close-cloud-modal-btn");
+const cancelCloudModalBtn = document.getElementById("cancel-cloud-modal-btn");
+const cloudConfigForm = document.getElementById("cloud-config-form");
+
+const cloudApiKey = document.getElementById("cloud-apiKey");
+const cloudAuthDomain = document.getElementById("cloud-authDomain");
+const cloudProjectId = document.getElementById("cloud-projectId");
+const cloudStorageBucket = document.getElementById("cloud-storageBucket");
+const cloudMessagingSenderId = document.getElementById("cloud-messagingSenderId");
+const cloudAppId = document.getElementById("cloud-appId");
+
 // Confetti Canvas
 const confettiCanvas = document.getElementById("confetti-canvas");
 const ctx = confettiCanvas.getContext("2d");
@@ -155,6 +178,7 @@ const clearDateFilterBtn = document.getElementById("clear-date-filter");
 document.addEventListener("DOMContentLoaded", () => {
     loadTheme();
     loadTasks();
+    initFirebase();
     setGreeting();
     setupEventListeners();
     setupDragAndDrop();
@@ -233,8 +257,251 @@ function loadTasks() {
     }
 }
 
-function saveTasks() {
+async function saveTasks() {
+    // 1. Lưu LocalStorage trước (luôn luôn an toàn offline)
     localStorage.setItem("tgtask_tasks", JSON.stringify(tasks));
+    
+    // 2. Nếu đăng nhập và Firebase hoạt động, đẩy lên Cloud
+    if (db && currentUser) {
+        try {
+            const userDocRef = db.collection("users").doc(currentUser.uid).collection("data").doc("tasksDoc");
+            await userDocRef.set({
+                tasks: tasks,
+                syncedAt: Date.now()
+            });
+        } catch (e) {
+            console.error("Lỗi đồng bộ Cloud khi lưu task:", e);
+        }
+    }
+}
+
+// --- Firebase Initialization & Methods ---
+function initFirebase() {
+    let config = null;
+    try {
+        const storedConfig = localStorage.getItem("tgtask_firebase_config");
+        if (storedConfig) {
+            config = JSON.parse(storedConfig);
+        }
+    } catch (e) {
+        console.error("Lỗi đọc cấu hình Firebase từ LocalStorage:", e);
+    }
+
+    updateCloudConfigBadge(config !== null);
+
+    if (!config) {
+        isFirebaseConfigured = false;
+        renderUserProfile();
+        return;
+    }
+
+    try {
+        if (window.firebase && firebase.apps.length === 0) {
+            firebaseApp = firebase.initializeApp(config);
+        } else if (window.firebase) {
+            firebaseApp = firebase.app();
+        }
+        
+        if (window.firebase) {
+            db = firebase.firestore();
+            auth = firebase.auth();
+            isFirebaseConfigured = true;
+
+            // Lắng nghe thay đổi trạng thái đăng nhập
+            auth.onAuthStateChanged(async (user) => {
+                currentUser = user;
+                renderUserProfile();
+                
+                if (user) {
+                    await syncAndLoadTasks();
+                } else {
+                    loadTasks();
+                    renderAll();
+                    renderSidebarCategories();
+                }
+            });
+        } else {
+            isFirebaseConfigured = false;
+            renderUserProfile();
+        }
+    } catch (e) {
+        console.error("Lỗi khởi tạo Firebase:", e);
+        isFirebaseConfigured = false;
+        renderUserProfile();
+    }
+}
+
+function updateCloudConfigBadge(configured) {
+    if (!cloudConfigBtn) return;
+    const oldBadge = cloudConfigBtn.querySelector(".cloud-configured-badge");
+    if (oldBadge) oldBadge.remove();
+
+    if (configured) {
+        const badge = document.createElement("span");
+        badge.className = "cloud-configured-badge";
+        cloudConfigBtn.appendChild(badge);
+    }
+}
+
+function renderUserProfile() {
+    if (!userProfileSection) return;
+
+    if (!isFirebaseConfigured) {
+        userProfileSection.innerHTML = `
+            <div class="user-profile-card unauthenticated">
+                <button class="btn-login-google" id="login-google-btn" disabled style="opacity: 0.6; cursor: not-allowed; background: var(--bg-card-border-hover); box-shadow: none;">
+                    <i data-lucide="cloud-off"></i>
+                    <span>Chưa cấu hình Cloud</span>
+                </button>
+                <p class="profile-tip" style="cursor: pointer; text-decoration: underline;" id="cloud-setup-tip">Click để Cấu hình Cloud</p>
+            </div>
+        `;
+        const setupTip = document.getElementById("cloud-setup-tip");
+        if (setupTip) setupTip.addEventListener("click", openCloudConfigModal);
+    } else if (isSyncing) {
+        userProfileSection.innerHTML = `
+            <div class="user-profile-card">
+                <div class="user-profile-loading">
+                    <i data-lucide="loader" class="spin"></i>
+                    <span>Đang đồng bộ Cloud...</span>
+                </div>
+            </div>
+        `;
+    } else if (!currentUser) {
+        userProfileSection.innerHTML = `
+            <div class="user-profile-card unauthenticated">
+                <button class="btn-login-google" id="login-google-btn">
+                    <i data-lucide="log-in"></i>
+                    <span>Đăng nhập Google</span>
+                </button>
+                <p class="profile-tip">Đồng bộ Cloud đa thiết bị</p>
+            </div>
+        `;
+        const loginBtn = document.getElementById("login-google-btn");
+        if (loginBtn) loginBtn.addEventListener("click", loginWithGoogle);
+    } else {
+        const photoUrl = currentUser.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80";
+        const displayName = currentUser.displayName || "Người dùng TG-Task";
+        
+        userProfileSection.innerHTML = `
+            <div class="user-profile-card authenticated">
+                <div class="user-avatar-wrapper">
+                    <img class="user-avatar" src="${photoUrl}" referrerpolicy="no-referrer" alt="${displayName}">
+                </div>
+                <div class="user-details">
+                    <h4 class="user-name" title="${displayName}">${displayName}</h4>
+                    <div class="sync-status">
+                        <span class="sync-badge"></span>
+                        <span>Đã đồng bộ Cloud</span>
+                    </div>
+                </div>
+                <button class="btn-logout" id="logout-btn" title="Đăng xuất">
+                    <i data-lucide="log-out"></i>
+                </button>
+            </div>
+        `;
+        const logoutBtn = document.getElementById("logout-btn");
+        if (logoutBtn) logoutBtn.addEventListener("click", logout);
+    }
+    
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+async function loginWithGoogle() {
+    if (!auth) return;
+    try {
+        isSyncing = true;
+        renderUserProfile();
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+    } catch (e) {
+        console.error("Lỗi đăng nhập Google:", e);
+        alert("Đăng nhập thất bại: " + e.message);
+        isSyncing = false;
+        renderUserProfile();
+    }
+}
+
+async function logout() {
+    if (!auth) return;
+    if (confirm("Bạn có chắc chắn muốn đăng xuất? Ứng dụng sẽ chuyển về chế độ Offline (LocalStorage).")) {
+        try {
+            isSyncing = true;
+            renderUserProfile();
+            await auth.signOut();
+        } catch (e) {
+            console.error("Lỗi đăng xuất:", e);
+        } finally {
+            isSyncing = false;
+        }
+    }
+}
+
+async function syncAndLoadTasks() {
+    if (!db || !currentUser) return;
+    
+    isSyncing = true;
+    renderUserProfile();
+
+    try {
+        const userDocRef = db.collection("users").doc(currentUser.uid).collection("data").doc("tasksDoc");
+        const doc = await userDocRef.get();
+        
+        let localTasks = [];
+        const storedLocal = localStorage.getItem("tgtask_tasks");
+        if (storedLocal) {
+            try {
+                localTasks = JSON.parse(storedLocal);
+            } catch (e) {
+                console.error("Lỗi parse local tasks", e);
+            }
+        }
+
+        let cloudTasks = [];
+        if (doc.exists) {
+            cloudTasks = doc.data().tasks || [];
+        }
+
+        // Hợp nhất dữ liệu thông minh
+        const mergedMap = new Map();
+
+        cloudTasks.forEach(task => {
+            mergedMap.set(task.id, task);
+        });
+
+        localTasks.forEach(localTask => {
+            if (!mergedMap.has(localTask.id)) {
+                mergedMap.set(localTask.id, localTask);
+            } else {
+                const cloudTask = mergedMap.get(localTask.id);
+                const localTime = localTask.updatedAt || localTask.createdAt || 0;
+                const cloudTime = cloudTask.updatedAt || cloudTask.createdAt || 0;
+                if (localTime > cloudTime) {
+                    mergedMap.set(localTask.id, localTask);
+                }
+            }
+        });
+
+        const mergedTasks = Array.from(mergedMap.values());
+        tasks = mergedTasks;
+        
+        localStorage.setItem("tgtask_tasks", JSON.stringify(tasks));
+        await userDocRef.set({
+            tasks: tasks,
+            syncedAt: Date.now()
+        });
+
+    } catch (e) {
+        console.error("Lỗi đồng bộ dữ liệu đám mây:", e);
+        loadTasks();
+    } finally {
+        isSyncing = false;
+        renderUserProfile();
+        renderAll();
+        renderSidebarCategories();
+    }
 }
 
 // --- Period Filtering Logic ---
@@ -404,6 +671,20 @@ function setupEventListeners() {
     exportBtn.addEventListener("click", exportData);
     importTriggerBtn.addEventListener("click", () => importFileInput.click());
     importFileInput.addEventListener("change", importData);
+
+    // Cloud configuration events
+    if (cloudConfigBtn) {
+        cloudConfigBtn.addEventListener("click", openCloudConfigModal);
+    }
+    if (closeCloudModalBtn) {
+        closeCloudModalBtn.addEventListener("click", closeCloudConfigModal);
+    }
+    if (cancelCloudModalBtn) {
+        cancelCloudModalBtn.addEventListener("click", closeCloudConfigModal);
+    }
+    if (cloudConfigForm) {
+        cloudConfigForm.addEventListener("submit", handleCloudConfigSubmit);
+    }
 }
 
 // --- View Switcher ---
@@ -1068,6 +1349,7 @@ function handleFormSubmit(e) {
             task.status = status;
             task.progress = progress;
             task.subtasks = [...tempSubtasks];
+            task.updatedAt = Date.now();
 
             if (status === "completed" && !wasCompleted) {
                 task.subtasks.forEach(s => s.completed = true);
@@ -1089,7 +1371,8 @@ function handleFormSubmit(e) {
             status: status,
             progress: progress,
             subtasks: [...tempSubtasks],
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            updatedAt: Date.now()
         };
 
         if (status === "completed") {
@@ -1261,5 +1544,56 @@ function animateConfetti() {
     } else {
         confettiActive = false;
         ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    }
+}
+
+// --- Cloud Config Modal Control ---
+function openCloudConfigModal() {
+    if (!cloudConfigModal) return;
+    
+    try {
+        const stored = localStorage.getItem("tgtask_firebase_config");
+        if (stored) {
+            const config = JSON.parse(stored);
+            cloudApiKey.value = config.apiKey || "";
+            cloudAuthDomain.value = config.authDomain || "";
+            cloudProjectId.value = config.projectId || "";
+            cloudStorageBucket.value = config.storageBucket || "";
+            cloudMessagingSenderId.value = config.messagingSenderId || "";
+            cloudAppId.value = config.appId || "";
+        }
+    } catch (e) {
+        console.error("Lỗi điền dữ liệu config:", e);
+    }
+    
+    cloudConfigModal.style.display = "flex";
+}
+
+function closeCloudConfigModal() {
+    if (!cloudConfigModal) return;
+    cloudConfigModal.style.display = "none";
+}
+
+function handleCloudConfigSubmit(e) {
+    e.preventDefault();
+    
+    const config = {
+        apiKey: cloudApiKey.value.trim(),
+        authDomain: cloudAuthDomain.value.trim(),
+        projectId: cloudProjectId.value.trim(),
+        storageBucket: cloudStorageBucket.value.trim(),
+        messagingSenderId: cloudMessagingSenderId.value.trim(),
+        appId: cloudAppId.value.trim()
+    };
+    
+    try {
+        localStorage.setItem("tgtask_firebase_config", JSON.stringify(config));
+        closeCloudConfigModal();
+        alert("Đã lưu cấu hình Cloud thành công! TG-Task đang kết nối dữ liệu...");
+        
+        initFirebase();
+    } catch (e) {
+        console.error("Lỗi lưu cấu hình Firebase:", e);
+        alert("Có lỗi xảy ra khi lưu cấu hình.");
     }
 }

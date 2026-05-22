@@ -14,6 +14,11 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
+    <!-- Firebase SDK Compat (UMD) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <!-- Stylesheet -->
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -29,6 +34,17 @@
                     <i data-lucide="sparkles"></i>
                 </div>
                 <h2>TG-Task</h2>
+            </div>
+            
+            <!-- User Profile Area -->
+            <div class="sidebar-user-profile" id="user-profile-section">
+                <div class="user-profile-card unauthenticated">
+                    <button class="btn-login-google" id="login-google-btn">
+                        <i data-lucide="log-in"></i>
+                        <span>Đăng nhập Google</span>
+                    </button>
+                    <p class="profile-tip">Đồng bộ Cloud đa thiết bị</p>
+                </div>
             </div>
             
             <div class="sidebar-section">
@@ -62,6 +78,10 @@
                     <button class="action-btn-secondary" id="import-trigger-btn" title="Nhập dữ liệu từ file JSON">
                         <i data-lucide="upload"></i>
                         <span>Nhập Backup</span>
+                    </button>
+                    <button class="action-btn-secondary" id="cloud-config-btn" title="Cấu hình tài khoản Cloud">
+                        <i data-lucide="cloud"></i>
+                        <span>Cấu hình Cloud</span>
                     </button>
                     <input type="file" id="import-file-input" accept=".json" style="display: none;">
                 </div>
@@ -410,6 +430,68 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Cloud Configuration Modal -->
+    <div class="modal-backdrop" id="cloud-config-modal" style="display: none;">
+        <div class="modal-content glass-modal cloud-modal">
+            <div class="modal-header">
+                <h2><i data-lucide="cloud-cog"></i> Cấu hình Đám mây (Firebase)</h2>
+                <button class="close-modal-btn" id="close-cloud-modal-btn" aria-label="Đóng">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="cloud-modal-desc">
+                    TG-Task sử dụng cơ sở dữ liệu **Google Firebase** để lưu trữ và đồng bộ hóa công việc của bạn. Hãy dán cấu hình Firebase Web App của bạn dưới đây để bắt đầu đồng bộ đám mây.
+                </p>
+                <form id="cloud-config-form">
+                    <div class="form-group">
+                        <label for="cloud-apiKey">API Key <span class="required">*</span></label>
+                        <input type="text" id="cloud-apiKey" required placeholder="AIzaSy...">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cloud-authDomain">Auth Domain <span class="required">*</span></label>
+                            <input type="text" id="cloud-authDomain" required placeholder="project-id.firebaseapp.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="cloud-projectId">Project ID <span class="required">*</span></label>
+                            <input type="text" id="cloud-projectId" required placeholder="project-id">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cloud-storageBucket">Storage Bucket</label>
+                            <input type="text" id="cloud-storageBucket" placeholder="project-id.appspot.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="cloud-messagingSenderId">Messaging Sender ID</label>
+                            <input type="text" id="cloud-messagingSenderId" placeholder="1234567890">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="cloud-appId">App ID <span class="required">*</span></label>
+                        <input type="text" id="cloud-appId" required placeholder="1:1234567890:web:abcdef...">
+                    </div>
+                    
+                    <div class="cloud-instructions">
+                        <h4>💡 Hướng dẫn nhanh:</h4>
+                        <ol>
+                            <li>Truy cập <a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebase Console</a> và tạo một Dự án mới.</li>
+                            <li>Tạo ứng dụng Web trong dự án của bạn để lấy đoạn mã cấu hình JSON.</li>
+                            <li>Kích hoạt **Authentication (Google Sign-In)** và **Cloud Firestore** trên dự án Firebase của bạn.</li>
+                        </ol>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-cancel" id="cancel-cloud-modal-btn">Hủy bỏ</button>
+                        <button type="submit" class="btn-submit" id="save-cloud-config-btn">
+                            <i data-lucide="save"></i>
+                            <span>Lưu cấu hình</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
