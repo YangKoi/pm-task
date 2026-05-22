@@ -83,12 +83,13 @@ const CATEGORIES = [
 // Tạo một dự án Firebase dùng chung và điền cấu hình Web App của bạn dưới đây.
 // Người dùng phổ thông sẽ có thể sử dụng ngay nút "Đăng nhập Google" mà không cần bất kỳ cấu hình nào.
 const DEFAULT_FIREBASE_CONFIG = {
-    apiKey: "",          // <-- Điền API Key của dự án dùng chung để kích hoạt Zero-Config
-    authDomain: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: ""
+    apiKey: "AIzaSyAAGlyo2NCpkL03v_U8GOCPfj8ttWKK4kc",
+    authDomain: "tg-task-21ab7.firebaseapp.com",
+    projectId: "tg-task-21ab7",
+    storageBucket: "tg-task-21ab7.firebasestorage.app",
+    messagingSenderId: "1024628601993",
+    appId: "1:1024628601993:web:f5f97a4b0a9f1adbfcc258",
+    measurementId: "G-0TECHHJTQS"
 };
 
 // --- Application State ---
