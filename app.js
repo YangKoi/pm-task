@@ -379,21 +379,28 @@ function updateCloudConfigBadge(configured) {
 
 function renderUserProfile() {
     if (!userProfileSection) return;
+    const loginGoogleBtnBottom = document.getElementById("login-google-btn-bottom");
 
     if (!isFirebaseConfigured) {
+        // 1. Render premium offline status in top profile section
         userProfileSection.innerHTML = `
-            <div class="user-profile-card unauthenticated">
-                <button class="btn-login-google" id="login-google-btn">
-                    <i data-lucide="log-in"></i>
-                    <span>Đăng nhập Google</span>
-                </button>
-                <p class="profile-tip" style="cursor: pointer; text-decoration: underline;" id="cloud-setup-tip">Yêu cầu cấu hình Cloud</p>
+            <div class="user-profile-card unauthenticated" style="background: rgba(255,255,255,0.01); border-color: rgba(255,255,255,0.03);">
+                <div class="sync-status" style="justify-content: center; width: 100%; gap: 0.4rem; padding: 0.15rem 0;">
+                    <span class="sync-badge" style="background-color: var(--color-text-muted); box-shadow: none; animation: none; width: 6px; height: 6px;"></span>
+                    <span style="font-size: 0.725rem; font-weight: 600; opacity: 0.75; cursor: pointer; text-decoration: underline;" id="cloud-setup-tip">Chế độ: Cục bộ (Offline)</span>
+                </div>
             </div>
         `;
         
-        const loginBtn = document.getElementById("login-google-btn");
-        if (loginBtn) {
-            loginBtn.addEventListener("click", () => {
+        // 2. Control bottom Google Login button
+        if (loginGoogleBtnBottom) {
+            loginGoogleBtnBottom.style.display = "flex";
+            
+            // Clean old listeners by replacing
+            const newLoginBtn = loginGoogleBtnBottom.cloneNode(true);
+            loginGoogleBtnBottom.parentNode.replaceChild(newLoginBtn, loginGoogleBtnBottom);
+            
+            newLoginBtn.addEventListener("click", () => {
                 openCloudConfigModal();
                 const modalCard = cloudConfigModal ? cloudConfigModal.querySelector(".modal-card") : null;
                 if (modalCard) {
@@ -423,6 +430,11 @@ function renderUserProfile() {
             });
         }
     } else if (isSyncing) {
+        // Hide bottom Google Login button during loading / syncing
+        if (loginGoogleBtnBottom) {
+            loginGoogleBtnBottom.style.display = "none";
+        }
+        
         userProfileSection.innerHTML = `
             <div class="user-profile-card">
                 <div class="user-profile-loading">
@@ -432,19 +444,32 @@ function renderUserProfile() {
             </div>
         `;
     } else if (!currentUser) {
-        const configTip = activeFirebaseConfigType === "default" ? "Đồng bộ đám mây tự động" : "Đồng bộ đám mây riêng";
+        // 1. Render premium cloud ready status in top profile section
         userProfileSection.innerHTML = `
-            <div class="user-profile-card unauthenticated">
-                <button class="btn-login-google" id="login-google-btn">
-                    <i data-lucide="log-in"></i>
-                    <span>Đăng nhập Google</span>
-                </button>
-                <p class="profile-tip">${configTip}</p>
+            <div class="user-profile-card unauthenticated" style="background: rgba(255,255,255,0.01); border-color: rgba(255,255,255,0.03);">
+                <div class="sync-status" style="justify-content: center; width: 100%; gap: 0.4rem; padding: 0.15rem 0;">
+                    <span class="sync-badge" style="background-color: var(--color-primary-light); box-shadow: 0 0 6px var(--color-primary); animation: sync-pulse 1.8s infinite ease-in-out; width: 6px; height: 6px;"></span>
+                    <span style="font-size: 0.725rem; font-weight: 600; opacity: 0.85;">Đám mây đã sẵn sàng</span>
+                </div>
             </div>
         `;
-        const loginBtn = document.getElementById("login-google-btn");
-        if (loginBtn) loginBtn.addEventListener("click", loginWithGoogle);
+        
+        // 2. Control bottom Google Login button
+        if (loginGoogleBtnBottom) {
+            loginGoogleBtnBottom.style.display = "flex";
+            
+            // Clean old listeners by replacing
+            const newLoginBtn = loginGoogleBtnBottom.cloneNode(true);
+            loginGoogleBtnBottom.parentNode.replaceChild(newLoginBtn, loginGoogleBtnBottom);
+            
+            newLoginBtn.addEventListener("click", loginWithGoogle);
+        }
     } else {
+        // Hide bottom Google Login button when successfully authenticated
+        if (loginGoogleBtnBottom) {
+            loginGoogleBtnBottom.style.display = "none";
+        }
+        
         const photoUrl = currentUser.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80";
         const displayName = currentUser.displayName || "Người dùng TG-Task";
         const isDefault = activeFirebaseConfigType === "default";
