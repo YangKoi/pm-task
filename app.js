@@ -88,6 +88,7 @@ let priorityFilter = "all";
 let sortBy = "dueDateAsc";
 let currentTheme = "dark";
 let currentPeriodFilter = "all"; // 'all' | 'week' | 'month'
+let currentDateFilter = ""; // 'YYYY-MM-DD' | ''
 
 // --- DOM Elements ---
 const viewBoardBtn = document.getElementById("view-board-btn");
@@ -147,6 +148,8 @@ const ctx = confettiCanvas.getContext("2d");
 
 // Period Selectors
 const periodBtns = document.querySelectorAll(".period-btn");
+const dateFilterInput = document.getElementById("date-filter");
+const clearDateFilterBtn = document.getElementById("clear-date-filter");
 
 // --- Initialization ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -274,6 +277,14 @@ function getTasksFilteredByPeriod(taskList) {
     return taskList;
 }
 
+function getTasksFilteredByPeriodAndDate(taskList) {
+    let filtered = getTasksFilteredByPeriod(taskList);
+    if (currentDateFilter) {
+        filtered = filtered.filter(t => t.dueDate === currentDateFilter);
+    }
+    return filtered;
+}
+
 // --- Setup Event Listeners ---
 function setupEventListeners() {
     // View Switching
@@ -303,9 +314,44 @@ function setupEventListeners() {
             periodBtns.forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             currentPeriodFilter = btn.dataset.period;
+            // Khi người dùng chọn lọc tuần/tháng, ta xoá lọc ngày cụ thể để tránh xung đột
+            dateFilterInput.value = "";
+            currentDateFilter = "";
+            clearDateFilterBtn.style.display = "none";
             renderSidebarCategories();
             renderAll();
         });
+    });
+
+    // Date filter change
+    dateFilterInput.addEventListener("change", (e) => {
+        currentDateFilter = e.target.value;
+        if (currentDateFilter) {
+            clearDateFilterBtn.style.display = "inline-flex";
+            
+            // Giải quyết xung đột bộ lọc: đưa bộ chọn Tuần/Tháng về "Tất cả"
+            currentPeriodFilter = "all";
+            periodBtns.forEach(btn => {
+                if (btn.dataset.period === "all") {
+                    btn.classList.add("active");
+                } else {
+                    btn.classList.remove("active");
+                }
+            });
+        } else {
+            clearDateFilterBtn.style.display = "none";
+        }
+        renderSidebarCategories();
+        renderAll();
+    });
+
+    // Clear date filter click
+    clearDateFilterBtn.addEventListener("click", () => {
+        dateFilterInput.value = "";
+        currentDateFilter = "";
+        clearDateFilterBtn.style.display = "none";
+        renderSidebarCategories();
+        renderAll();
     });
 
     // Mobile Sidebar toggle
@@ -381,7 +427,7 @@ function switchView(view) {
 function renderSidebarCategories() {
     categoryFilterList.innerHTML = "";
     CATEGORIES.forEach(cat => {
-        const periodFilteredTasks = getTasksFilteredByPeriod(tasks);
+        const periodFilteredTasks = getTasksFilteredByPeriodAndDate(tasks);
         const count = cat.id === "all" 
             ? periodFilteredTasks.length 
             : periodFilteredTasks.filter(t => t.category === cat.id).length;
@@ -409,7 +455,7 @@ function renderSidebarCategories() {
 
 // --- Analytics Update ---
 function updateAnalytics() {
-    const periodTasks = getTasksFilteredByPeriod(tasks);
+    const periodTasks = getTasksFilteredByPeriodAndDate(tasks);
     const total = periodTasks.length;
     const inProgress = periodTasks.filter(t => t.status === "inprogress").length;
     const completed = periodTasks.filter(t => t.status === "completed").length;
@@ -455,7 +501,7 @@ function updateAnalytics() {
 
 // --- Filtering & Sorting Core logic ---
 function getFilteredAndSortedTasks() {
-    let result = getTasksFilteredByPeriod(tasks);
+    let result = getTasksFilteredByPeriodAndDate(tasks);
 
     // 1. Category Filter
     if (currentCategoryFilter !== "all") {
@@ -482,6 +528,10 @@ function getFilteredAndSortedTasks() {
             return a.dueDate.localeCompare(b.dueDate);
         } else if (sortBy === "dueDateDesc") {
             return b.dueDate.localeCompare(a.dueDate);
+        } else if (sortBy === "createdAtDesc") {
+            return (b.createdAt || 0) - (a.createdAt || 0);
+        } else if (sortBy === "createdAtAsc") {
+            return (a.createdAt || 0) - (b.createdAt || 0);
         } else if (sortBy === "priorityDesc") {
             const priorityWeight = { high: 3, medium: 2, low: 1 };
             return priorityWeight[b.priority] - priorityWeight[a.priority];
@@ -625,9 +675,15 @@ function createTaskCard(task) {
             </div>
         </div>
         <div class="task-card-footer">
-            <div class="task-due-date ${isOverdue ? "is-overdue" : ""}">
-                <i data-lucide="calendar"></i>
-                <span>${formatDate(task.dueDate)}</span>
+            <div class="task-card-dates">
+                <div class="task-created-date" title="Ngày tạo công việc">
+                    <i data-lucide="plus-circle"></i>
+                    <span>Tạo: ${formatTimestamp(task.createdAt)}</span>
+                </div>
+                <div class="task-due-date ${isOverdue ? "is-overdue" : ""}" title="Ngày hạn chót">
+                    <i data-lucide="calendar"></i>
+                    <span>Hạn: ${formatDate(task.dueDate)}</span>
+                </div>
             </div>
             <div class="task-priority-indicator priority-${task.priority}">
                 <span>${priorityLabel}</span>
@@ -720,6 +776,11 @@ function renderListView(filteredTasks) {
             </td>
             <td>
                 <span class="task-tag cat-${task.category ? task.category.toLowerCase() : "default"}">${task.category}</span>
+            </td>
+            <td>
+                <div class="task-created-date">
+                    <span>${formatTimestamp(task.createdAt)}</span>
+                </div>
             </td>
             <td>
                 <div class="task-due-date ${isOverdue ? "is-overdue" : ""}">
@@ -1103,6 +1164,15 @@ function escapeHTML(str) {
 function formatDate(dateStr) {
     if (!dateStr) return "";
     const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+}
+
+function formatTimestamp(timestamp) {
+    if (!timestamp) return "";
+    const d = new Date(timestamp);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
     return `${day}/${month}/${year}`;
 }
 

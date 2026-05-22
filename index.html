@@ -192,10 +192,19 @@
                         </select>
                     </div>
                     <div class="filter-group">
+                        <label for="date-filter"><i data-lucide="calendar"></i></label>
+                        <input type="date" id="date-filter" aria-label="Lọc theo ngày hạn chót" style="font-size: 0.85rem; font-weight: 500; background: transparent; border: none; outline: none; cursor: pointer; color: inherit;">
+                        <button id="clear-date-filter" title="Xóa lọc ngày" style="display: none; background: none; border: none; color: var(--color-text-muted); cursor: pointer; padding-left: 4px; align-items: center; justify-content: center;">
+                            <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                    <div class="filter-group">
                         <label for="sort-select"><i data-lucide="arrow-down-narrow-wide"></i></label>
                         <select id="sort-select" aria-label="Sắp xếp danh sách">
-                            <option value="dueDateAsc">Hạn chót (Gần nhất)</option>
-                            <option value="dueDateDesc">Hạn chót (Xa nhất)</option>
+                            <option value="dueDateAsc">Hạn chót (Gần nhất → Xa nhất)</option>
+                            <option value="dueDateDesc">Hạn chót (Xa nhất → Gần nhất)</option>
+                            <option value="createdAtDesc">Ngày tạo (Mới nhất → Cũ nhất)</option>
+                            <option value="createdAtAsc">Ngày tạo (Cũ nhất → Mới nhất)</option>
                             <option value="priorityDesc">Ưu tiên (Cao → Thấp)</option>
                             <option value="titleAsc">Tiêu đề (A → Z)</option>
                         </select>
@@ -276,6 +285,7 @@
                                     <th>Công việc</th>
                                     <th>Nhân viên</th>
                                     <th>Danh mục</th>
+                                    <th>Ngày tạo</th>
                                     <th>Hạn chót</th>
                                     <th>Mức ưu tiên</th>
                                     <th>Tiến độ cụ thể</th>

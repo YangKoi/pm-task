@@ -941,6 +941,27 @@ button {
     width: 12px;
     height: 12px;
 }
+.task-created-date {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.725rem;
+    color: var(--color-text-muted);
+    opacity: 0.85;
+}
+.task-created-date i {
+    width: 12px;
+    height: 12px;
+}
+.task-card-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+#clear-date-filter:hover {
+    background-color: var(--bg-card-border-hover);
+    color: var(--color-overdue) !important;
+}
 
 .task-priority-indicator {
     display: flex;
