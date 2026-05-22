@@ -383,15 +383,45 @@ function renderUserProfile() {
     if (!isFirebaseConfigured) {
         userProfileSection.innerHTML = `
             <div class="user-profile-card unauthenticated">
-                <button class="btn-login-google" id="login-google-btn" disabled style="opacity: 0.6; cursor: not-allowed; background: var(--bg-card-border-hover); box-shadow: none;">
-                    <i data-lucide="cloud-off"></i>
-                    <span>Chưa cấu hình Cloud</span>
+                <button class="btn-login-google" id="login-google-btn">
+                    <i data-lucide="log-in"></i>
+                    <span>Đăng nhập Google</span>
                 </button>
-                <p class="profile-tip" style="cursor: pointer; text-decoration: underline;" id="cloud-setup-tip">Click để cấu hình Cloud cá nhân</p>
+                <p class="profile-tip" style="cursor: pointer; text-decoration: underline;" id="cloud-setup-tip">Yêu cầu cấu hình Cloud</p>
             </div>
         `;
+        
+        const loginBtn = document.getElementById("login-google-btn");
+        if (loginBtn) {
+            loginBtn.addEventListener("click", () => {
+                openCloudConfigModal();
+                const modalCard = cloudConfigModal ? cloudConfigModal.querySelector(".modal-card") : null;
+                if (modalCard) {
+                    modalCard.classList.remove("shake-animation");
+                    void modalCard.offsetWidth; // Trigger reflow to restart animation
+                    modalCard.classList.add("shake-animation");
+                    setTimeout(() => {
+                        modalCard.classList.remove("shake-animation");
+                    }, 500);
+                }
+            });
+        }
+
         const setupTip = document.getElementById("cloud-setup-tip");
-        if (setupTip) setupTip.addEventListener("click", openCloudConfigModal);
+        if (setupTip) {
+            setupTip.addEventListener("click", () => {
+                openCloudConfigModal();
+                const modalCard = cloudConfigModal ? cloudConfigModal.querySelector(".modal-card") : null;
+                if (modalCard) {
+                    modalCard.classList.remove("shake-animation");
+                    void modalCard.offsetWidth; // Trigger reflow to restart animation
+                    modalCard.classList.add("shake-animation");
+                    setTimeout(() => {
+                        modalCard.classList.remove("shake-animation");
+                    }, 500);
+                }
+            });
+        }
     } else if (isSyncing) {
         userProfileSection.innerHTML = `
             <div class="user-profile-card">
