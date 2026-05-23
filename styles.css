@@ -2396,12 +2396,16 @@ input[type="range"]::-moz-range-thumb:hover {
     box-shadow: 0 4px 16px rgba(139, 92, 246, 0.08);
 }
 
-.calendar-day-cell.outside-month {
-    opacity: 0.32;
-    background-color: transparent;
+.calendar-day-cell.empty-cell {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+    border: 1px dashed rgba(255, 255, 255, 0.03) !important;
+    cursor: default;
+    pointer-events: none;
+    box-shadow: none !important;
 }
-.calendar-day-cell.outside-month:hover {
-    opacity: 0.6;
+[data-theme="light"] .calendar-day-cell.empty-cell {
+    background-color: rgba(0, 0, 0, 0.01) !important;
+    border: 1px dashed rgba(0, 0, 0, 0.04) !important;
 }
 
 .calendar-day-cell.today {
@@ -2434,8 +2438,6 @@ input[type="range"]::-moz-range-thumb:hover {
     flex-direction: column;
     gap: 0.35rem;
     flex: 1;
-    overflow-y: auto;
-    max-height: 120px;
     padding-right: 2px;
 }
 
@@ -2479,6 +2481,63 @@ input[type="range"]::-moz-range-thumb:hover {
     text-decoration: line-through;
 }
 
+/* Location Filters inside Calendar View Header */
+.calendar-location-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.cal-filter-checkbox {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.45rem 1rem;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--bg-card-border);
+    background-color: rgba(0, 0, 0, 0.15);
+    transition: all var(--transition-fast);
+    user-select: none;
+}
+[data-theme="light"] .cal-filter-checkbox {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.cal-filter-checkbox input {
+    display: none;
+}
+
+/* Hover effects */
+.cal-filter-checkbox:hover {
+    border-color: var(--color-primary-light);
+    transform: translateY(-1px);
+}
+
+/* Checked styling */
+.cal-filter-checkbox.office-filter:has(input:checked) {
+    background-color: var(--color-loc-office-bg);
+    border-color: var(--color-loc-office);
+    color: var(--color-loc-office);
+    box-shadow: 0 0 10px var(--color-loc-office-glow);
+    opacity: 1;
+}
+.cal-filter-checkbox.site-filter:has(input:checked) {
+    background-color: var(--color-loc-site-bg);
+    border-color: var(--color-loc-site);
+    color: var(--color-loc-site);
+    box-shadow: 0 0 10px var(--color-loc-site-glow);
+    opacity: 1;
+}
+
+/* Unchecked styling */
+.cal-filter-checkbox:not(:has(input:checked)) {
+    opacity: 0.35;
+    border-color: var(--bg-card-border);
+    color: var(--color-text-muted);
+}
+
 /* Responsive Styles for calendar */
 @media (max-width: 900px) {
     .calendar-days-grid {
@@ -2489,6 +2548,13 @@ input[type="range"]::-moz-range-thumb:hover {
         letter-spacing: 0.5px;
     }
     .calendar-day-number {
+        font-size: 0.75rem;
+    }
+    .calendar-location-filters {
+        gap: 0.4rem;
+    }
+    .cal-filter-checkbox {
+        padding: 0.35rem 0.75rem;
         font-size: 0.75rem;
     }
 }

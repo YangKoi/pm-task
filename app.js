@@ -126,6 +126,8 @@ const calMonthYearText = document.getElementById("cal-month-year");
 const calPrevBtn = document.getElementById("cal-prev-btn");
 const calNextBtn = document.getElementById("cal-next-btn");
 const calTodayBtn = document.getElementById("cal-today-btn");
+const calFilterOffice = document.getElementById("cal-filter-office");
+const calFilterSite = document.getElementById("cal-filter-site");
 
 const categoryFilterList = document.getElementById("category-filter-list");
 const searchInput = document.getElementById("search-input");
@@ -688,6 +690,14 @@ function setupEventListeners() {
         renderCalendar();
     });
 
+    // Calendar Location Filters
+    if (calFilterOffice) {
+        calFilterOffice.addEventListener("change", () => renderCalendar());
+    }
+    if (calFilterSite) {
+        calFilterSite.addEventListener("change", () => renderCalendar());
+    }
+
     // Toolbar filtering
     searchInput.addEventListener("input", (e) => {
         searchQuery = e.target.value;
@@ -1087,8 +1097,6 @@ function renderCalendar() {
     
     // Number of days in current month
     const totalDays = new Date(year, month + 1, 0).getDate();
-    // Number of days in previous month
-    const prevTotalDays = new Date(year, month, 0).getDate();
     
     // We render a grid of 42 cells (6 weeks)
     const cellsToRender = 42;
@@ -1096,8 +1104,17 @@ function renderCalendar() {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
+    // Get filter states
+    const showOffice = calFilterOffice ? calFilterOffice.checked : true;
+    const showSite = calFilterSite ? calFilterSite.checked : true;
+    
     // Calendar filtered tasks (excludes date-specific filters to see the full month)
     const calendarFilteredTasks = tasks.filter(t => {
+        // Location Filter
+        const loc = t.workLocation || "office";
+        if (loc === "office" && !showOffice) return false;
+        if (loc === "site" && !showSite) return false;
+
         // Category Filter
         if (currentCategoryFilter !== "all" && t.category !== currentCategoryFilter) return false;
         // Priority Filter
@@ -1112,38 +1129,28 @@ function renderCalendar() {
 
     for (let i = 0; i < cellsToRender; i++) {
         const cell = document.createElement("div");
-        cell.className = "calendar-day-cell";
         
         let dayNum;
         let cellDateStr;
         let isOutsideMonth = false;
         
         if (i < adjustedFirstDayIndex) {
-            // Day of previous month
-            dayNum = prevTotalDays - (adjustedFirstDayIndex - i) + 1;
             isOutsideMonth = true;
-            
-            const prevMonthDate = new Date(year, month - 1, dayNum);
-            cellDateStr = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}-${String(prevMonthDate.getDate()).padStart(2, '0')}`;
         } else if (i < adjustedFirstDayIndex + totalDays) {
-            // Day of current month
             dayNum = i - adjustedFirstDayIndex + 1;
-            
             cellDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
         } else {
-            // Day of next month
-            dayNum = i - adjustedFirstDayIndex - totalDays + 1;
             isOutsideMonth = true;
-            
-            const nextMonthDate = new Date(year, month + 1, dayNum);
-            cellDateStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-${String(nextMonthDate.getDate()).padStart(2, '0')}`;
         }
-        
-        cell.dataset.date = cellDateStr;
         
         if (isOutsideMonth) {
-            cell.classList.add("outside-month");
+            cell.className = "calendar-day-cell empty-cell";
+            calendarDaysGrid.appendChild(cell);
+            continue;
         }
+        
+        cell.className = "calendar-day-cell";
+        cell.dataset.date = cellDateStr;
         
         if (cellDateStr === todayStr) {
             cell.classList.add("today");
