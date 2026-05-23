@@ -121,6 +121,11 @@ const viewCalendarBtn = document.getElementById("view-calendar-btn");
 const boardView = document.getElementById("board-view");
 const listView = document.getElementById("list-view");
 const calendarView = document.getElementById("calendar-view");
+const calendarDaysGrid = document.getElementById("calendar-days-grid");
+const calMonthYearText = document.getElementById("cal-month-year");
+const calPrevBtn = document.getElementById("cal-prev-btn");
+const calNextBtn = document.getElementById("cal-next-btn");
+const calTodayBtn = document.getElementById("cal-today-btn");
 
 const categoryFilterList = document.getElementById("category-filter-list");
 const searchInput = document.getElementById("search-input");
