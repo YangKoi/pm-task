@@ -335,41 +335,41 @@
                 <div class="view-panel" id="calendar-view">
                     <div class="calendar-wrapper">
                         <div class="calendar-header">
-                            <div class="calendar-navigation">
-                                <button type="button" class="cal-nav-btn" id="cal-prev-btn" title="Tháng trước">
-                                    <i data-lucide="chevron-left"></i>
-                                </button>
-                                <h3 class="calendar-month-year" id="cal-month-year">Tháng 05 / 2026</h3>
-                                <button type="button" class="cal-nav-btn" id="cal-next-btn" title="Tháng sau">
-                                    <i data-lucide="chevron-right"></i>
-                                </button>
+                            <div class="calendar-header-left">
+                                <button type="button" class="action-btn-secondary" id="cal-today-btn">Today</button>
+                                <div class="calendar-nav-buttons">
+                                    <button type="button" class="cal-nav-btn" id="cal-prev-btn" title="Tháng trước">
+                                        <i data-lucide="chevron-left"></i>
+                                    </button>
+                                    <button type="button" class="cal-nav-btn" id="cal-next-btn" title="Tháng sau">
+                                        <i data-lucide="chevron-right"></i>
+                                    </button>
+                                </div>
+                                <h3 class="calendar-month-year" id="cal-month-year">Tháng 5 năm 2026</h3>
                             </div>
                             
-                            <!-- Location Filters inside Calendar -->
-                            <div class="calendar-location-filters">
-                                <label class="cal-filter-checkbox office-filter" title="Bật/Tắt hiển thị công việc tại văn phòng">
-                                    <input type="checkbox" id="cal-filter-office" checked>
-                                    <span class="checkbox-custom">🏢 Văn phòng</span>
-                                </label>
-                                <label class="cal-filter-checkbox site-filter" title="Bật/Tắt hiển thị công việc tại site">
-                                    <input type="checkbox" id="cal-filter-site" checked>
-                                    <span class="checkbox-custom">🚧 Tại site</span>
-                                </label>
+                            <div class="calendar-header-right">
+                                <!-- Location Filters inside Calendar -->
+                                <div class="calendar-location-filters">
+                                    <label class="cal-filter-checkbox office-filter" title="Hiển thị công việc tại văn phòng">
+                                        <input type="checkbox" id="cal-filter-office" checked>
+                                        <span class="checkbox-custom">🏢 Văn phòng</span>
+                                    </label>
+                                    <label class="cal-filter-checkbox site-filter" title="Hiển thị công việc tại site">
+                                        <input type="checkbox" id="cal-filter-site" checked>
+                                        <span class="checkbox-custom">🚧 Tại site</span>
+                                    </label>
+                                </div>
                             </div>
-                            
-                            <button type="button" class="action-btn-secondary" id="cal-today-btn">
-                                <i data-lucide="calendar"></i>
-                                <span>Hôm nay</span>
-                            </button>
                         </div>
                         <div class="calendar-grid-header">
-                            <div class="day-name-label">T2</div>
-                            <div class="day-name-label">T3</div>
-                            <div class="day-name-label">T4</div>
-                            <div class="day-name-label">T5</div>
-                            <div class="day-name-label">T6</div>
-                            <div class="day-name-label">T7</div>
-                            <div class="day-name-label">CN</div>
+                            <div class="day-name-label">Chủ Nhật</div>
+                            <div class="day-name-label">Thứ Hai</div>
+                            <div class="day-name-label">Thứ Ba</div>
+                            <div class="day-name-label">Thứ Tư</div>
+                            <div class="day-name-label">Thứ Năm</div>
+                            <div class="day-name-label">Thứ Sáu</div>
+                            <div class="day-name-label">Thứ Bảy</div>
                         </div>
                         <div class="calendar-days-grid" id="calendar-days-grid">
                             <!-- Rendered dynamically by JS -->

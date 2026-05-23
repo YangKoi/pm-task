@@ -78,6 +78,11 @@ const CATEGORIES = [
     { id: "Learning", name: "📚 Học tập", icon: "book-open" }
 ];
 
+const VIETNAMESE_MONTHS = [
+    "Tháng Một", "Tháng Hai", "Tháng Ba", "Tháng Tư", "Tháng Năm", "Tháng Sáu",
+    "Tháng Bảy", "Tháng Tám", "Tháng Chín", "Tháng Mười", "Tháng Mười Một", "Tháng Mười Hai"
+];
+
 // --- Default Firebase Configuration (Zero-Config Fallback) ---
 // HƯỚNG DẪN DÀNH CHO NHÀ PHÁT TRIỂN (DEVELOPER):
 // Tạo một dự án Firebase dùng chung và điền cấu hình Web App của bạn dưới đây.
@@ -692,10 +697,30 @@ function setupEventListeners() {
 
     // Calendar Location Filters
     if (calFilterOffice) {
-        calFilterOffice.addEventListener("change", () => renderCalendar());
+        calFilterOffice.addEventListener("change", () => {
+            const label = calFilterOffice.closest('.cal-filter-checkbox');
+            if (label) {
+                if (calFilterOffice.checked) {
+                    label.classList.add('checked');
+                } else {
+                    label.classList.remove('checked');
+                }
+            }
+            renderCalendar();
+        });
     }
     if (calFilterSite) {
-        calFilterSite.addEventListener("change", () => renderCalendar());
+        calFilterSite.addEventListener("change", () => {
+            const label = calFilterSite.closest('.cal-filter-checkbox');
+            if (label) {
+                if (calFilterSite.checked) {
+                    label.classList.add('checked');
+                } else {
+                    label.classList.remove('checked');
+                }
+            }
+            renderCalendar();
+        });
     }
 
     // Toolbar filtering
@@ -1084,19 +1109,35 @@ function renderCalendar() {
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth(); // 0-indexed
     
-    // Update Header Text: "Tháng MM / YYYY"
-    const monthFormatted = String(month + 1).padStart(2, '0');
-    calMonthYearText.textContent = `Tháng ${monthFormatted} / ${year}`;
+    // Update Header Text: "Tháng Năm 2026"
+    calMonthYearText.textContent = `${VIETNAMESE_MONTHS[month]} ${year}`;
+    
+    // Sync location filter checkbox visuals (fallback for older browsers)
+    if (calFilterOffice) {
+        const label = calFilterOffice.closest('.cal-filter-checkbox');
+        if (label) {
+            if (calFilterOffice.checked) label.classList.add('checked');
+            else label.classList.remove('checked');
+        }
+    }
+    if (calFilterSite) {
+        const label = calFilterSite.closest('.cal-filter-checkbox');
+        if (label) {
+            if (calFilterSite.checked) label.classList.add('checked');
+            else label.classList.remove('checked');
+        }
+    }
     
     calendarDaysGrid.innerHTML = "";
     
-    // First day of current month
-    const firstDayIndex = new Date(year, month, 1).getDay(); // 0: Sunday, 1: Monday...
-    // Adjust Sunday to be index 6 (to start week with Monday)
-    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+    // First day of current month (starts on Sunday = 0, Monday = 1...)
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const adjustedFirstDayIndex = firstDayIndex; // Sunday starts, so it matches index exactly!
     
     // Number of days in current month
     const totalDays = new Date(year, month + 1, 0).getDate();
+    // Number of days in previous month
+    const prevTotalDays = new Date(year, month, 0).getDate();
     
     // We render a grid of 42 cells (6 weeks)
     const cellsToRender = 42;
@@ -1133,24 +1174,53 @@ function renderCalendar() {
         let dayNum;
         let cellDateStr;
         let isOutsideMonth = false;
+        let labelText = "";
         
         if (i < adjustedFirstDayIndex) {
+            // Day of previous month
+            dayNum = prevTotalDays - (adjustedFirstDayIndex - i) + 1;
             isOutsideMonth = true;
+            
+            const prevMonthDate = new Date(year, month - 1, dayNum);
+            const prevMonthName = prevMonthDate.getMonth() + 1;
+            const prevMonthYear = prevMonthDate.getFullYear();
+            cellDateStr = `${prevMonthYear}-${String(prevMonthName).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+            
+            labelText = `${dayNum}`;
+            if (i === 0 || dayNum === 1) {
+                labelText = `${dayNum} Thg${prevMonthName}`;
+            }
         } else if (i < adjustedFirstDayIndex + totalDays) {
+            // Day of current month
             dayNum = i - adjustedFirstDayIndex + 1;
             cellDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+            
+            labelText = `${dayNum}`;
+            if (dayNum === 1) {
+                labelText = `${dayNum} Thg${month + 1}`;
+            }
         } else {
+            // Day of next month
+            dayNum = i - adjustedFirstDayIndex - totalDays + 1;
             isOutsideMonth = true;
-        }
-        
-        if (isOutsideMonth) {
-            cell.className = "calendar-day-cell empty-cell";
-            calendarDaysGrid.appendChild(cell);
-            continue;
+            
+            const nextMonthDate = new Date(year, month + 1, dayNum);
+            const nextMonthName = nextMonthDate.getMonth() + 1;
+            const nextMonthYear = nextMonthDate.getFullYear();
+            cellDateStr = `${nextMonthYear}-${String(nextMonthName).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+            
+            labelText = `${dayNum}`;
+            if (dayNum === 1) {
+                labelText = `${dayNum} Thg${nextMonthName}`;
+            }
         }
         
         cell.className = "calendar-day-cell";
         cell.dataset.date = cellDateStr;
+        
+        if (isOutsideMonth) {
+            cell.classList.add("outside-month");
+        }
         
         if (cellDateStr === todayStr) {
             cell.classList.add("today");
@@ -1159,7 +1229,7 @@ function renderCalendar() {
         // Day number element
         const numElem = document.createElement("span");
         numElem.className = "calendar-day-number";
-        numElem.textContent = dayNum;
+        numElem.textContent = labelText;
         cell.appendChild(numElem);
         
         // Tasks container

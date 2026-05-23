@@ -2353,12 +2353,16 @@ input[type="range"]::-moz-range-thumb:hover {
 .calendar-grid-header {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.5rem;
-    border-bottom: 1px solid var(--bg-card-border);
-    padding-bottom: 0.75rem;
+    gap: 1px;
+    background-color: var(--bg-card-border);
+    border: 1px solid var(--bg-card-border);
+    border-bottom: none;
+    border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
 }
 
 .day-name-label {
+    background-color: rgba(18, 24, 38, 0.5);
+    padding: 0.75rem 0;
     text-align: center;
     font-size: 0.8rem;
     font-weight: 700;
@@ -2366,60 +2370,66 @@ input[type="range"]::-moz-range-thumb:hover {
     text-transform: uppercase;
     letter-spacing: 1px;
 }
+[data-theme="light"] .day-name-label {
+    background-color: rgba(255, 255, 255, 0.85);
+}
 
 .calendar-days-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: minmax(110px, auto);
-    gap: 0.5rem;
+    grid-auto-rows: minmax(120px, auto);
+    gap: 1px;
+    background-color: var(--bg-card-border);
+    border: 1px solid var(--bg-card-border);
+    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+    overflow: hidden;
 }
 
 .calendar-day-cell {
-    background-color: rgba(0, 0, 0, 0.12);
-    border: 1px solid var(--bg-card-border);
-    border-radius: var(--border-radius-md);
-    padding: 0.6rem;
+    background-color: rgba(18, 24, 38, 0.4);
+    padding: 0.75rem 0.6rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.45rem;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: background-color var(--transition-fast);
     position: relative;
-    overflow: hidden;
+    border-radius: 0 !important;
 }
 [data-theme="light"] .calendar-day-cell {
-    background-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.95);
 }
 .calendar-day-cell:hover {
     background-color: var(--bg-card-hover);
-    border-color: var(--color-primary-light);
-    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.08);
 }
 
-.calendar-day-cell.empty-cell {
-    background-color: rgba(0, 0, 0, 0.02) !important;
-    border: 1px dashed rgba(255, 255, 255, 0.03) !important;
-    cursor: default;
-    pointer-events: none;
-    box-shadow: none !important;
+.calendar-day-cell.outside-month {
+    background-color: rgba(0, 0, 0, 0.22) !important;
 }
-[data-theme="light"] .calendar-day-cell.empty-cell {
-    background-color: rgba(0, 0, 0, 0.01) !important;
-    border: 1px dashed rgba(0, 0, 0, 0.04) !important;
+[data-theme="light"] .calendar-day-cell.outside-month {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+}
+.calendar-day-cell.outside-month .calendar-day-number {
+    opacity: 0.4;
+}
+.calendar-day-cell.outside-month .calendar-task-badge {
+    opacity: 0.55;
+    filter: grayscale(20%);
 }
 
 .calendar-day-cell.today {
-    background-color: var(--color-primary-muted);
-    border-color: var(--color-primary);
-    box-shadow: inset 0 0 10px rgba(139, 92, 246, 0.15);
+    background-color: rgba(139, 92, 246, 0.08) !important;
+    box-shadow: inset 0 0 0 2px var(--color-primary) !important;
+    z-index: 2;
 }
 .calendar-day-cell.today .calendar-day-number {
     background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
     color: white;
-    width: 24px;
+    width: auto;
     height: 24px;
+    padding: 0 8px;
     border-radius: var(--border-radius-full);
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
@@ -2427,10 +2437,10 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 
 .calendar-day-number {
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: 0.825rem;
+    font-weight: 700;
     color: var(--color-text);
-    align-self: flex-end;
+    align-self: flex-start;
 }
 
 .calendar-day-tasks {
@@ -2439,23 +2449,24 @@ input[type="range"]::-moz-range-thumb:hover {
     gap: 0.35rem;
     flex: 1;
     padding-right: 2px;
+    margin-top: 0.25rem;
 }
 
 /* Compact task badges inside calendar cells */
 .calendar-task-badge {
     font-size: 0.725rem;
     font-weight: 600;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    padding: 0.35rem 0.55rem;
+    border-radius: 6px;
+    white-space: normal;
+    word-break: break-word;
     display: flex;
-    align-items: center;
-    gap: 0.25rem;
+    align-items: flex-start;
+    gap: 0.35rem;
     cursor: pointer;
     transition: all var(--transition-fast);
     border-left: 3px solid transparent;
+    line-height: 1.35;
 }
 .calendar-task-badge:hover {
     transform: translateX(2px);
@@ -2482,6 +2493,81 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 
 /* Location Filters inside Calendar View Header */
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-bottom: 1px solid var(--bg-card-border);
+    padding-bottom: 1.25rem;
+}
+
+.calendar-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.calendar-nav-buttons {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--bg-card-border);
+    border-radius: var(--border-radius-md);
+    background-color: rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+}
+[data-theme="light"] .calendar-nav-buttons {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.calendar-nav-buttons .cal-nav-btn {
+    border: none;
+    border-radius: 0;
+    width: 38px;
+    height: 38px;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.calendar-nav-buttons .cal-nav-btn:first-child {
+    border-right: 1px solid var(--bg-card-border);
+}
+
+.calendar-month-year {
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--color-text);
+    margin-left: 0.5rem;
+}
+
+.calendar-header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+#cal-today-btn {
+    padding: 0.55rem 1.15rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--bg-card-border);
+    background-color: rgba(0, 0, 0, 0.15);
+    color: var(--color-text);
+    transition: all var(--transition-fast);
+}
+[data-theme="light"] #cal-today-btn {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+#cal-today-btn:hover {
+    background-color: var(--bg-card-border-hover);
+    border-color: var(--color-primary-light);
+    color: var(--color-primary-light);
+}
+
 .calendar-location-filters {
     display: flex;
     align-items: center;
@@ -2494,7 +2580,7 @@ input[type="range"]::-moz-range-thumb:hover {
     cursor: pointer;
     font-size: 0.8rem;
     font-weight: 700;
-    padding: 0.45rem 1rem;
+    padding: 0.55rem 1rem;
     border-radius: var(--border-radius-md);
     border: 1px solid var(--bg-card-border);
     background-color: rgba(0, 0, 0, 0.15);
@@ -2505,8 +2591,8 @@ input[type="range"]::-moz-range-thumb:hover {
     background-color: rgba(0, 0, 0, 0.02);
 }
 
-.cal-filter-checkbox input {
-    display: none;
+.cal-filter-checkbox input[type="checkbox"] {
+    display: none !important;
 }
 
 /* Hover effects */
@@ -2515,15 +2601,17 @@ input[type="range"]::-moz-range-thumb:hover {
     transform: translateY(-1px);
 }
 
-/* Checked styling */
-.cal-filter-checkbox.office-filter:has(input:checked) {
+/* Checked styling with fallback */
+.cal-filter-checkbox.office-filter:has(input:checked),
+.cal-filter-checkbox.office-filter.checked {
     background-color: var(--color-loc-office-bg);
     border-color: var(--color-loc-office);
     color: var(--color-loc-office);
     box-shadow: 0 0 10px var(--color-loc-office-glow);
     opacity: 1;
 }
-.cal-filter-checkbox.site-filter:has(input:checked) {
+.cal-filter-checkbox.site-filter:has(input:checked),
+.cal-filter-checkbox.site-filter.checked {
     background-color: var(--color-loc-site-bg);
     border-color: var(--color-loc-site);
     color: var(--color-loc-site);
@@ -2531,8 +2619,8 @@ input[type="range"]::-moz-range-thumb:hover {
     opacity: 1;
 }
 
-/* Unchecked styling */
-.cal-filter-checkbox:not(:has(input:checked)) {
+/* Unchecked styling with fallback */
+.cal-filter-checkbox:not(:has(input:checked)):not(.checked) {
     opacity: 0.35;
     border-color: var(--bg-card-border);
     color: var(--color-text-muted);
