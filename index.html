@@ -57,6 +57,10 @@
                         <i data-lucide="list-todo"></i>
                         <span>Danh sách chi tiết</span>
                     </button>
+                    <button class="nav-item" id="view-calendar-btn" aria-label="Xem dạng lịch biểu">
+                        <i data-lucide="calendar-days"></i>
+                        <span>Lịch biểu</span>
+                    </button>
                 </nav>
             </div>
 
@@ -326,6 +330,39 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Calendar View Panel -->
+                <div class="view-panel" id="calendar-view">
+                    <div class="calendar-wrapper">
+                        <div class="calendar-header">
+                            <div class="calendar-navigation">
+                                <button type="button" class="cal-nav-btn" id="cal-prev-btn" title="Tháng trước">
+                                    <i data-lucide="chevron-left"></i>
+                                </button>
+                                <h3 class="calendar-month-year" id="cal-month-year">Tháng 05 / 2026</h3>
+                                <button type="button" class="cal-nav-btn" id="cal-next-btn" title="Tháng sau">
+                                    <i data-lucide="chevron-right"></i>
+                                </button>
+                            </div>
+                            <button type="button" class="action-btn-secondary" id="cal-today-btn">
+                                <i data-lucide="calendar"></i>
+                                <span>Hôm nay</span>
+                            </button>
+                        </div>
+                        <div class="calendar-grid-header">
+                            <div class="day-name-label">T2</div>
+                            <div class="day-name-label">T3</div>
+                            <div class="day-name-label">T4</div>
+                            <div class="day-name-label">T5</div>
+                            <div class="day-name-label">T6</div>
+                            <div class="day-name-label">T7</div>
+                            <div class="day-name-label">CN</div>
+                        </div>
+                        <div class="calendar-days-grid" id="calendar-days-grid">
+                            <!-- Rendered dynamically by JS -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -391,6 +428,20 @@
                         <span id="progress-val-label" style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary);">0%</span>
                     </div>
                     <input type="range" id="task-progress-input" min="0" max="100" value="0" style="width: 100%; cursor: pointer;">
+                </div>
+
+                <div class="form-group">
+                    <label>Địa điểm làm việc</label>
+                    <div class="location-radio-group">
+                        <label class="location-radio-btn office">
+                            <input type="radio" name="workLocation" value="office" checked>
+                            <span class="radio-label">🏢 Tại văn phòng</span>
+                        </label>
+                        <label class="location-radio-btn site">
+                            <input type="radio" name="workLocation" value="site">
+                            <span class="radio-label">🚧 Tại site</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="form-group">

@@ -63,6 +63,13 @@
     --color-overdue: #ef4444;
     --color-overdue-bg: rgba(239, 68, 68, 0.1);
     
+    --color-loc-office: #06b6d4;
+    --color-loc-office-bg: rgba(6, 182, 212, 0.1);
+    --color-loc-office-glow: rgba(6, 182, 212, 0.35);
+    --color-loc-site: #f59e0b;
+    --color-loc-site-bg: rgba(245, 158, 11, 0.1);
+    --color-loc-site-glow: rgba(245, 158, 11, 0.35);
+    
     --glass-blur: blur(16px);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
@@ -103,6 +110,13 @@
     
     --color-overdue: #dc2626;
     --color-overdue-bg: rgba(220, 38, 38, 0.08);
+    
+    --color-loc-office: #0891b2;
+    --color-loc-office-bg: rgba(8, 145, 178, 0.08);
+    --color-loc-office-glow: rgba(8, 145, 178, 0.15);
+    --color-loc-site: #d97706;
+    --color-loc-site-bg: rgba(217, 119, 6, 0.08);
+    --color-loc-site-glow: rgba(217, 119, 6, 0.15);
     
     --glass-blur: blur(20px);
     --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06);
@@ -2206,6 +2220,279 @@ input[type="range"]::-moz-range-thumb:hover {
     border: 2px solid rgba(255, 255, 255, 0.15);
     flex-shrink: 0;
 }
+
+/* ==========================================================================
+   New Styles: Location Tagging & Calendar View
+   ========================================================================== */
+
+/* 1. Location Radio Buttons styling in form */
+.location-radio-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+.location-radio-btn {
+    border: 1px solid var(--bg-card-border);
+    border-radius: var(--border-radius-md);
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+    background-color: rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] .location-radio-btn {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+.location-radio-btn input {
+    display: none;
+}
+.location-radio-btn:hover {
+    background-color: var(--bg-card-border-hover);
+    border-color: var(--color-text-muted);
+}
+.location-radio-btn.office { color: var(--color-loc-office); }
+.location-radio-btn.office:has(input:checked) {
+    background-color: var(--color-loc-office-bg);
+    border-color: var(--color-loc-office);
+    box-shadow: 0 0 12px var(--color-loc-office-glow);
+}
+.location-radio-btn.site { color: var(--color-loc-site); }
+.location-radio-btn.site:has(input:checked) {
+    background-color: var(--color-loc-site-bg);
+    border-color: var(--color-loc-site);
+    box-shadow: 0 0 12px var(--color-loc-site-glow);
+}
+
+/* 2. Task Cards Location Tags */
+.task-loc-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--border-radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid transparent;
+}
+.task-loc-tag.loc-office {
+    color: var(--color-loc-office);
+    background-color: var(--color-loc-office-bg);
+    border-color: rgba(6, 182, 212, 0.2);
+}
+.task-loc-tag.loc-site {
+    color: var(--color-loc-site);
+    background-color: var(--color-loc-site-bg);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* 3. Calendar View Styling */
+.calendar-wrapper {
+    background-color: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--bg-card-border);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    box-shadow: var(--glass-shadow);
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.5rem;
+}
+
+.calendar-navigation {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.calendar-month-year {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 700;
+    min-width: 180px;
+    text-align: center;
+}
+
+.cal-nav-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--border-radius-full);
+    border: 1px solid var(--bg-card-border);
+    background-color: rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text);
+    transition: all var(--transition-fast);
+}
+[data-theme="light"] .cal-nav-btn {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+.cal-nav-btn:hover {
+    background-color: var(--bg-card-border-hover);
+    color: var(--color-primary-light);
+    border-color: var(--color-primary-light);
+}
+.cal-nav-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.calendar-grid-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--bg-card-border);
+    padding-bottom: 0.75rem;
+}
+
+.day-name-label {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.calendar-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(110px, auto);
+    gap: 0.5rem;
+}
+
+.calendar-day-cell {
+    background-color: rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--bg-card-border);
+    border-radius: var(--border-radius-md);
+    padding: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+}
+[data-theme="light"] .calendar-day-cell {
+    background-color: rgba(255, 255, 255, 0.4);
+}
+.calendar-day-cell:hover {
+    background-color: var(--bg-card-hover);
+    border-color: var(--color-primary-light);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.08);
+}
+
+.calendar-day-cell.outside-month {
+    opacity: 0.32;
+    background-color: transparent;
+}
+.calendar-day-cell.outside-month:hover {
+    opacity: 0.6;
+}
+
+.calendar-day-cell.today {
+    background-color: var(--color-primary-muted);
+    border-color: var(--color-primary);
+    box-shadow: inset 0 0 10px rgba(139, 92, 246, 0.15);
+}
+.calendar-day-cell.today .calendar-day-number {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--border-radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    box-shadow: 0 2px 6px var(--color-primary-glow);
+}
+
+.calendar-day-number {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text);
+    align-self: flex-end;
+}
+
+.calendar-day-tasks {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 120px;
+    padding-right: 2px;
+}
+
+/* Compact task badges inside calendar cells */
+.calendar-task-badge {
+    font-size: 0.725rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border-left: 3px solid transparent;
+}
+.calendar-task-badge:hover {
+    transform: translateX(2px);
+    filter: brightness(1.15);
+}
+
+.calendar-task-badge.loc-office {
+    color: var(--color-loc-office);
+    background-color: var(--color-loc-office-bg);
+    border-left-color: var(--color-loc-office);
+}
+.calendar-task-badge.loc-office.completed {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+.calendar-task-badge.loc-site {
+    color: var(--color-loc-site);
+    background-color: var(--color-loc-site-bg);
+    border-left-color: var(--color-loc-site);
+}
+.calendar-task-badge.loc-site.completed {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+/* Responsive Styles for calendar */
+@media (max-width: 900px) {
+    .calendar-days-grid {
+        grid-auto-rows: minmax(90px, auto);
+    }
+    .day-name-label {
+        font-size: 0.7rem;
+        letter-spacing: 0.5px;
+    }
+    .calendar-day-number {
+        font-size: 0.75rem;
+    }
+}
+
 
 
 

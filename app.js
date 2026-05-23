@@ -95,7 +95,8 @@ const DEFAULT_FIREBASE_CONFIG = {
 // --- Application State ---
 let tasks = [];
 let tempSubtasks = []; // Temporary subtasks array for modal form
-let currentView = "board"; // 'board' | 'list'
+let currentView = "board"; // 'board' | 'list' | 'calendar'
+let currentCalendarDate = new Date(); // Current date for calendar view navigation
 let currentCategoryFilter = "all";
 let searchQuery = "";
 let priorityFilter = "all";
@@ -116,8 +117,10 @@ let isSyncing = false;
 // --- DOM Elements ---
 const viewBoardBtn = document.getElementById("view-board-btn");
 const viewListBtn = document.getElementById("view-list-btn");
+const viewCalendarBtn = document.getElementById("view-calendar-btn");
 const boardView = document.getElementById("board-view");
 const listView = document.getElementById("list-view");
+const calendarView = document.getElementById("calendar-view");
 
 const categoryFilterList = document.getElementById("category-filter-list");
 const searchInput = document.getElementById("search-input");
@@ -664,6 +667,21 @@ function setupEventListeners() {
     // View Switching
     viewBoardBtn.addEventListener("click", () => switchView("board"));
     viewListBtn.addEventListener("click", () => switchView("list"));
+    viewCalendarBtn.addEventListener("click", () => switchView("calendar"));
+
+    // Calendar Navigation
+    calPrevBtn.addEventListener("click", () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+        renderCalendar();
+    });
+    calNextBtn.addEventListener("click", () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+        renderCalendar();
+    });
+    calTodayBtn.addEventListener("click", () => {
+        currentCalendarDate = new Date();
+        renderCalendar();
+    });
 
     // Toolbar filtering
     searchInput.addEventListener("input", (e) => {
@@ -881,16 +899,26 @@ function setupEventListeners() {
 // --- View Switcher ---
 function switchView(view) {
     currentView = view;
+    
+    // Reset active buttons
+    viewBoardBtn.classList.remove("active");
+    viewListBtn.classList.remove("active");
+    viewCalendarBtn.classList.remove("active");
+    
+    // Reset active panels
+    boardView.classList.remove("active");
+    listView.classList.remove("active");
+    calendarView.classList.remove("active");
+    
     if (view === "board") {
         viewBoardBtn.classList.add("active");
-        viewListBtn.classList.remove("active");
         boardView.classList.add("active");
-        listView.classList.remove("active");
-    } else {
-        viewBoardBtn.classList.remove("active");
+    } else if (view === "list") {
         viewListBtn.classList.add("active");
-        boardView.classList.remove("active");
         listView.classList.add("active");
+    } else if (view === "calendar") {
+        viewCalendarBtn.classList.add("active");
+        calendarView.classList.add("active");
     }
     renderAll();
 }
@@ -1024,12 +1052,141 @@ function renderAll() {
 
     if (currentView === "board") {
         renderBoardView(filteredTasks);
-    } else {
+    } else if (currentView === "list") {
         renderListView(filteredTasks);
+    } else if (currentView === "calendar") {
+        renderCalendar();
     }
     
     // Update Lucide Icons
     lucide.createIcons();
+}
+
+// --- Render Month Calendar ---
+function renderCalendar() {
+    if (!calendarDaysGrid) return;
+    
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth(); // 0-indexed
+    
+    // Update Header Text: "Tháng MM / YYYY"
+    const monthFormatted = String(month + 1).padStart(2, '0');
+    calMonthYearText.textContent = `Tháng ${monthFormatted} / ${year}`;
+    
+    calendarDaysGrid.innerHTML = "";
+    
+    // First day of current month
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0: Sunday, 1: Monday...
+    // Adjust Sunday to be index 6 (to start week with Monday)
+    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+    
+    // Number of days in current month
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    // Number of days in previous month
+    const prevTotalDays = new Date(year, month, 0).getDate();
+    
+    // We render a grid of 42 cells (6 weeks)
+    const cellsToRender = 42;
+    
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    // Calendar filtered tasks (excludes date-specific filters to see the full month)
+    const calendarFilteredTasks = tasks.filter(t => {
+        // Category Filter
+        if (currentCategoryFilter !== "all" && t.category !== currentCategoryFilter) return false;
+        // Priority Filter
+        if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
+        // Search query
+        if (searchQuery.trim() !== "") {
+            const query = searchQuery.toLowerCase();
+            if (!t.title.toLowerCase().includes(query) && !t.desc.toLowerCase().includes(query)) return false;
+        }
+        return true;
+    });
+
+    for (let i = 0; i < cellsToRender; i++) {
+        const cell = document.createElement("div");
+        cell.className = "calendar-day-cell";
+        
+        let dayNum;
+        let cellDateStr;
+        let isOutsideMonth = false;
+        
+        if (i < adjustedFirstDayIndex) {
+            // Day of previous month
+            dayNum = prevTotalDays - (adjustedFirstDayIndex - i) + 1;
+            isOutsideMonth = true;
+            
+            const prevMonthDate = new Date(year, month - 1, dayNum);
+            cellDateStr = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}-${String(prevMonthDate.getDate()).padStart(2, '0')}`;
+        } else if (i < adjustedFirstDayIndex + totalDays) {
+            // Day of current month
+            dayNum = i - adjustedFirstDayIndex + 1;
+            
+            cellDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+        } else {
+            // Day of next month
+            dayNum = i - adjustedFirstDayIndex - totalDays + 1;
+            isOutsideMonth = true;
+            
+            const nextMonthDate = new Date(year, month + 1, dayNum);
+            cellDateStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-${String(nextMonthDate.getDate()).padStart(2, '0')}`;
+        }
+        
+        cell.dataset.date = cellDateStr;
+        
+        if (isOutsideMonth) {
+            cell.classList.add("outside-month");
+        }
+        
+        if (cellDateStr === todayStr) {
+            cell.classList.add("today");
+        }
+        
+        // Day number element
+        const numElem = document.createElement("span");
+        numElem.className = "calendar-day-number";
+        numElem.textContent = dayNum;
+        cell.appendChild(numElem);
+        
+        // Tasks container
+        const tasksContainer = document.createElement("div");
+        tasksContainer.className = "calendar-day-tasks";
+        
+        // Find tasks due on this date
+        const dayTasks = calendarFilteredTasks.filter(t => t.dueDate === cellDateStr);
+        
+        dayTasks.forEach(task => {
+            const badge = document.createElement("div");
+            const isCompleted = task.status === "completed";
+            const locationClass = task.workLocation === "site" ? "loc-site" : "loc-office";
+            const completedClass = isCompleted ? "completed" : "";
+            
+            badge.className = `calendar-task-badge ${locationClass} ${completedClass}`;
+            badge.title = `${task.title} (${task.workLocation === 'site' ? 'Tại site' : 'Văn phòng'})`;
+            
+            const icon = task.workLocation === "site" ? "🚧" : "🏢";
+            badge.innerHTML = `<span>${icon}</span> <span>${escapeHTML(task.title)}</span>`;
+            
+            badge.addEventListener("click", (e) => {
+                e.stopPropagation();
+                openModal(task.id);
+            });
+            
+            tasksContainer.appendChild(badge);
+        });
+        
+        cell.appendChild(tasksContainer);
+        
+        // Double-click to create task pre-filled with date
+        cell.addEventListener("dblclick", () => {
+            openModal();
+            taskDateInput.value = cellDateStr;
+        });
+        
+        calendarDaysGrid.appendChild(cell);
+    }
 }
 
 // --- Render Board Kanban ---
@@ -1108,9 +1265,15 @@ function createTaskCard(task) {
     const priorityLabelMap = { high: "Cao", medium: "Trung bình", low: "Thấp" };
     const priorityLabel = priorityLabelMap[task.priority] || "Thấp";
 
+    const locClass = task.workLocation === "site" ? "loc-site" : "loc-office";
+    const locLabel = task.workLocation === "site" ? "🚧 Tại site" : "🏢 Văn phòng";
+
     card.innerHTML = `
         <div class="task-card-header">
-            <span class="task-tag ${catClass}">${task.category}</span>
+            <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+                <span class="task-tag ${catClass}">${task.category}</span>
+                <span class="task-loc-tag ${locClass}">${locLabel}</span>
+            </div>
             <div class="task-actions-menu">
                 <button class="card-action-btn edit-btn" title="Chỉnh sửa công việc">
                     <i data-lucide="edit-3"></i>
@@ -1247,7 +1410,10 @@ function renderListView(filteredTasks) {
                 ` : "-"}
             </td>
             <td>
-                <span class="task-tag cat-${task.category ? task.category.toLowerCase() : "default"}">${task.category}</span>
+                <div style="display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start;">
+                    <span class="task-tag cat-${task.category ? task.category.toLowerCase() : "default"}">${task.category}</span>
+                    <span class="task-loc-tag ${task.workLocation === 'site' ? 'loc-site' : 'loc-office'}">${task.workLocation === 'site' ? '🚧 Tại site' : '🏢 Văn phòng'}</span>
+                </div>
             </td>
             <td>
                 <div class="task-created-date">
@@ -1426,6 +1592,11 @@ function openModal(editingTaskId = null) {
             const radio = taskForm.querySelector(`input[name="priority"][value="${task.priority}"]`);
             if (radio) radio.checked = true;
 
+            // Location radio check
+            const locVal = task.workLocation || "office";
+            const locRadio = taskForm.querySelector(`input[name="workLocation"][value="${locVal}"]`);
+            if (locRadio) locRadio.checked = true;
+
             // Load subtasks
             if (task.subtasks) {
                 tempSubtasks = [...task.subtasks];
@@ -1441,6 +1612,9 @@ function openModal(editingTaskId = null) {
         progressValLabel.textContent = "0%";
         // default priority
         taskForm.querySelector('input[name="priority"][value="low"]').checked = true;
+        // default location
+        const defaultLocRadio = taskForm.querySelector('input[name="workLocation"][value="office"]');
+        if (defaultLocRadio) defaultLocRadio.checked = true;
     }
 
     renderModalSubtasks();
@@ -1512,6 +1686,7 @@ function handleFormSubmit(e) {
     const dueDate = taskDateInput.value;
     const category = taskCategoryInput.value;
     const priority = taskForm.querySelector('input[name="priority"]:checked').value;
+    const workLocation = taskForm.querySelector('input[name="workLocation"]:checked').value;
     const assignee = taskAssigneeInput.value.trim();
     let status = taskStatusInput.value;
     let progress = parseInt(taskProgressInput.value);
@@ -1536,6 +1711,7 @@ function handleFormSubmit(e) {
             task.dueDate = dueDate;
             task.category = category;
             task.priority = priority;
+            task.workLocation = workLocation;
             task.assignee = assignee;
             task.status = status;
             task.progress = progress;
@@ -1558,6 +1734,7 @@ function handleFormSubmit(e) {
             dueDate: dueDate,
             category: category,
             priority: priority,
+            workLocation: workLocation,
             assignee: assignee,
             status: status,
             progress: progress,
