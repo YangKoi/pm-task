@@ -639,26 +639,23 @@ function getTasksFilteredByPeriod(taskList) {
         
         const monday = new Date(today);
         monday.setDate(today.getDate() + diffToMonday);
-        monday.setHours(0, 0, 0, 0);
         
         const sunday = new Date(monday);
         sunday.setDate(monday.getDate() + 6);
-        sunday.setHours(23, 59, 59, 999);
         
-        const startStr = monday.toISOString().split('T')[0];
-        const endStr = sunday.toISOString().split('T')[0];
+        // Định dạng chuỗi YYYY-MM-DD theo giờ địa phương để tránh lệch múi giờ UTC khi dùng toISOString()
+        const startStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+        const endStr = `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
         
         return taskList.filter(t => t.dueDate >= startStr && t.dueDate <= endStr);
     } else if (currentPeriodFilter === "month") {
         // Tháng này: Hạn chót từ ngày 1 đầu tháng hiện tại đến ngày cuối cùng của tháng đó
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        firstDay.setHours(0, 0, 0, 0);
-        
         const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        lastDay.setHours(23, 59, 59, 999);
         
-        const startStr = firstDay.toISOString().split('T')[0];
-        const endStr = lastDay.toISOString().split('T')[0];
+        // Định dạng chuỗi YYYY-MM-DD theo giờ địa phương để tránh lệch múi giờ UTC khi dùng toISOString()
+        const startStr = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}-${String(firstDay.getDate()).padStart(2, '0')}`;
+        const endStr = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
         
         return taskList.filter(t => t.dueDate >= startStr && t.dueDate <= endStr);
     }
