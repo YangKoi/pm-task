@@ -2663,8 +2663,15 @@ input[type="range"]::-moz-range-thumb:hover {
     padding-right: 0.5rem;
     cursor: pointer;
 }
-.datetime-picker-row select option {
-    background-color: var(--bg-card);
-    color: var(--color-text);
+
+/* Custom Dropdown Option Styles for perfect 24h & Toolbar Filters readability */
+select option {
+    background-color: #1a2035 !important; /* Màu nền tối đặc (opaque) cực kỳ sang trọng ở Dark Mode */
+    color: #ffffff !important; /* Chữ trắng rõ ràng 100% */
+}
+
+[data-theme="light"] select option {
+    background-color: #ffffff !important; /* Nền trắng sáng ở Light Mode */
+    color: #0f172a !important; /* Chữ tối sẫm rõ ràng 100% */
 }
 
