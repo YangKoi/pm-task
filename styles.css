@@ -2654,9 +2654,17 @@ input[type="range"]::-moz-range-thumb:hover {
         padding: 0.35rem 0.75rem;
         font-size: 0.75rem;
     }
+
+/* Time picker custom select rules */
+.datetime-picker-row select {
+    text-align: center;
+    text-align-last: center;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    cursor: pointer;
 }
-
-
-
-
+.datetime-picker-row select option {
+    background-color: var(--bg-card);
+    color: var(--color-text);
+}
 

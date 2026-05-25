@@ -164,6 +164,8 @@ const taskIdInput = document.getElementById("task-id");
 const taskTitleInput = document.getElementById("task-title-input");
 const taskDescInput = document.getElementById("task-desc-input");
 const taskDateInput = document.getElementById("task-date-input");
+const taskHourInput = document.getElementById("task-hour-input");
+const taskMinuteInput = document.getElementById("task-minute-input");
 const taskCategoryInput = document.getElementById("task-category-input");
 
 const subtaskNewTitle = document.getElementById("subtask-new-title");
@@ -226,6 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadTasks();
     initFirebase();
     setGreeting();
+    initTimeDropdowns(); // Khởi tạo giờ/phút dạng 24h
     setupEventListeners();
     setupDragAndDrop();
     renderSidebarCategories();
@@ -233,6 +236,27 @@ document.addEventListener("DOMContentLoaded", () => {
     resizeConfettiCanvas();
     window.addEventListener("resize", resizeConfettiCanvas);
 });
+
+// Khởi tạo danh sách các ô chọn giờ và phút định dạng 24h
+function initTimeDropdowns() {
+    if (!taskHourInput || !taskMinuteInput) return;
+    
+    // Render 24 Giờ (00 -> 23)
+    let hourHTML = "";
+    for (let h = 0; h < 24; h++) {
+        const hStr = String(h).padStart(2, '0');
+        hourHTML += `<option value="${hStr}">${hStr}</option>`;
+    }
+    taskHourInput.innerHTML = hourHTML;
+    
+    // Render 60 Phút (00 -> 59)
+    let minuteHTML = "";
+    for (let m = 0; m < 60; m++) {
+        const mStr = String(m).padStart(2, '0');
+        minuteHTML += `<option value="${mStr}">${mStr}</option>`;
+    }
+    taskMinuteInput.innerHTML = minuteHTML;
+}
 
 // --- Theme Handling ---
 function loadTheme() {
@@ -1683,10 +1707,12 @@ function openModal(editingTaskId = null) {
     taskModal.classList.add("active");
     tempSubtasks = [];
 
-    // Set today 17:00 as default due date-time
+    // Set today and 17:00 as default due date-time
     const today = new Date();
-    const defaultDateTime = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}T17:00`;
-    taskDateInput.value = defaultDateTime;
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    taskDateInput.value = todayStr;
+    taskHourInput.value = "17";
+    taskMinuteInput.value = "00";
 
     if (editingTaskId) {
         const task = tasks.find(t => t.id === editingTaskId);
@@ -1696,12 +1722,21 @@ function openModal(editingTaskId = null) {
             taskTitleInput.value = task.title;
             taskDescInput.value = task.desc || "";
             
-            // Tương thích ngược: bù giờ mặc định T17:00 nếu task cũ không có giờ
+            // Tương thích ngược: tách ngày và giờ
             let formDueDate = task.dueDate;
-            if (formDueDate && !formDueDate.includes('T')) {
-                formDueDate = `${formDueDate}T17:00`;
+            if (formDueDate) {
+                if (formDueDate.includes('T')) {
+                    const [datePart, timePart] = formDueDate.split('T');
+                    taskDateInput.value = datePart;
+                    const [hour, minute] = timePart.split(':');
+                    taskHourInput.value = hour;
+                    taskMinuteInput.value = minute.substring(0, 2);
+                } else {
+                    taskDateInput.value = formDueDate;
+                    taskHourInput.value = "17";
+                    taskMinuteInput.value = "00";
+                }
             }
-            taskDateInput.value = formDueDate;
             
             taskCategoryInput.value = task.category;
             taskAssigneeInput.value = task.assignee || "";
@@ -1806,7 +1841,7 @@ function handleFormSubmit(e) {
     const id = taskIdInput.value;
     const title = taskTitleInput.value.trim();
     const desc = taskDescInput.value.trim();
-    const dueDate = taskDateInput.value;
+    const dueDate = `${taskDateInput.value}T${taskHourInput.value}:${taskMinuteInput.value}`;
     const category = taskCategoryInput.value;
     const priority = taskForm.querySelector('input[name="priority"]:checked').value;
     const workLocation = taskForm.querySelector('input[name="workLocation"]:checked').value;
