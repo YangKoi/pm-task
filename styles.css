@@ -4,6 +4,7 @@
 
 /* 1. Global Reset & Theme Variables */
 :root {
+    color-scheme: dark;
     --font-heading: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     
@@ -76,6 +77,7 @@
 
 /* Light Theme Variables */
 [data-theme="light"] {
+    color-scheme: light;
     --bg-app: #f8fafc;
     --bg-sidebar: rgba(255, 255, 255, 0.75);
     --bg-main: #f8fafc;
@@ -163,6 +165,13 @@ button, select, input, textarea {
     border: none;
     background: none;
     outline: none;
+    color-scheme: dark;
+}
+[data-theme="light"] button,
+[data-theme="light"] select,
+[data-theme="light"] input,
+[data-theme="light"] textarea {
+    color-scheme: light;
 }
 button {
     cursor: pointer;
@@ -2666,12 +2675,12 @@ input[type="range"]::-moz-range-thumb:hover {
 
 /* Custom Dropdown Option Styles for perfect 24h & Toolbar Filters readability */
 select option {
-    background-color: #1a2035 !important; /* Màu nền tối đặc (opaque) cực kỳ sang trọng ở Dark Mode */
-    color: #ffffff !important; /* Chữ trắng rõ ràng 100% */
+    background-color: #1a2035; /* Màu nền tối đặc (opaque) cực kỳ sang trọng ở Dark Mode */
+    color: #ffffff; /* Chữ trắng rõ ràng 100% */
 }
 
 [data-theme="light"] select option {
-    background-color: #ffffff !important; /* Nền trắng sáng ở Light Mode */
-    color: #0f172a !important; /* Chữ tối sẫm rõ ràng 100% */
+    background-color: #ffffff; /* Nền trắng sáng ở Light Mode */
+    color: #0f172a; /* Chữ tối sẫm rõ ràng 100% */
 }
 
