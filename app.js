@@ -672,7 +672,10 @@ function getTasksFilteredByPeriod(taskList) {
 function getTasksFilteredByPeriodAndDate(taskList) {
     let filtered = getTasksFilteredByPeriod(taskList);
     if (currentDateFilter) {
-        filtered = filtered.filter(t => t.dueDate === currentDateFilter);
+        filtered = filtered.filter(t => {
+            const taskDateStr = t.dueDate ? t.dueDate.split('T')[0] : "";
+            return taskDateStr === currentDateFilter;
+        });
     }
     return filtered;
 }
@@ -1248,7 +1251,10 @@ function renderCalendar() {
         tasksContainer.className = "calendar-day-tasks";
         
         // Find tasks due on this date
-        const dayTasks = calendarFilteredTasks.filter(t => t.dueDate === cellDateStr);
+        const dayTasks = calendarFilteredTasks.filter(t => {
+            const taskDateStr = t.dueDate ? t.dueDate.split('T')[0] : "";
+            return taskDateStr === cellDateStr;
+        });
         
         dayTasks.forEach(task => {
             const badge = document.createElement("div");
