@@ -647,7 +647,10 @@ function getTasksFilteredByPeriod(taskList) {
         const startStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
         const endStr = `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
         
-        return taskList.filter(t => t.dueDate >= startStr && t.dueDate <= endStr);
+        return taskList.filter(t => {
+            const taskDateStr = t.dueDate ? t.dueDate.split('T')[0] : "";
+            return taskDateStr >= startStr && taskDateStr <= endStr;
+        });
     } else if (currentPeriodFilter === "month") {
         // Tháng này: Hạn chót từ ngày 1 đầu tháng hiện tại đến ngày cuối cùng của tháng đó
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -657,7 +660,10 @@ function getTasksFilteredByPeriod(taskList) {
         const startStr = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}-${String(firstDay.getDate()).padStart(2, '0')}`;
         const endStr = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
         
-        return taskList.filter(t => t.dueDate >= startStr && t.dueDate <= endStr);
+        return taskList.filter(t => {
+            const taskDateStr = t.dueDate ? t.dueDate.split('T')[0] : "";
+            return taskDateStr >= startStr && taskDateStr <= endStr;
+        });
     }
     
     return taskList;
@@ -998,8 +1004,15 @@ function updateAnalytics() {
     const completed = periodTasks.filter(t => t.status === "completed").length;
     
     // Calculate Overdue
-    const todayStr = new Date().toISOString().split('T')[0];
-    const overdue = periodTasks.filter(t => t.status !== "completed" && t.dueDate < todayStr).length;
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const overdue = periodTasks.filter(t => {
+        if (t.status === "completed" || !t.dueDate) return false;
+        if (t.dueDate.includes('T')) {
+            return new Date(t.dueDate) < new Date();
+        }
+        return t.dueDate < todayStr;
+    }).length;
 
     statTotalCount.textContent = total;
     statProgressCount.textContent = inProgress;
@@ -1307,8 +1320,16 @@ function createTaskCard(task) {
     card.dataset.id = task.id;
 
     // Check overdue
-    const todayStr = new Date().toISOString().split('T')[0];
-    const isOverdue = task.status !== "completed" && task.dueDate < todayStr;
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    let isOverdue = false;
+    if (task.dueDate && task.status !== "completed") {
+        if (task.dueDate.includes('T')) {
+            isOverdue = new Date(task.dueDate) < new Date();
+        } else {
+            isOverdue = task.dueDate < todayStr;
+        }
+    }
     const isCompleted = task.status === "completed";
     const completedClass = isCompleted ? "completed-text" : "";
 
@@ -1439,8 +1460,16 @@ function renderListView(filteredTasks) {
 
     filteredTasks.forEach(task => {
         // Overdue check
-        const todayStr = new Date().toISOString().split('T')[0];
-        const isOverdue = task.status !== "completed" && task.dueDate < todayStr;
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        let isOverdue = false;
+        if (task.dueDate && task.status !== "completed") {
+            if (task.dueDate.includes('T')) {
+                isOverdue = new Date(task.dueDate) < new Date();
+            } else {
+                isOverdue = task.dueDate < todayStr;
+            }
+        }
         const isCompleted = task.status === "completed";
         const completedClass = isCompleted ? "completed-text" : "";
 
@@ -1648,9 +1677,10 @@ function openModal(editingTaskId = null) {
     taskModal.classList.add("active");
     tempSubtasks = [];
 
-    // Set today as minimum due date input by default
-    const todayStr = new Date().toISOString().split('T')[0];
-    taskDateInput.value = todayStr;
+    // Set today 17:00 as default due date-time
+    const today = new Date();
+    const defaultDateTime = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}T17:00`;
+    taskDateInput.value = defaultDateTime;
 
     if (editingTaskId) {
         const task = tasks.find(t => t.id === editingTaskId);
@@ -1659,7 +1689,14 @@ function openModal(editingTaskId = null) {
             taskIdInput.value = task.id;
             taskTitleInput.value = task.title;
             taskDescInput.value = task.desc || "";
-            taskDateInput.value = task.dueDate;
+            
+            // Tương thích ngược: bù giờ mặc định T17:00 nếu task cũ không có giờ
+            let formDueDate = task.dueDate;
+            if (formDueDate && !formDueDate.includes('T')) {
+                formDueDate = `${formDueDate}T17:00`;
+            }
+            taskDateInput.value = formDueDate;
+            
             taskCategoryInput.value = task.category;
             taskAssigneeInput.value = task.assignee || "";
             taskStatusInput.value = task.status || "todo";
@@ -1895,6 +1932,14 @@ function escapeHTML(str) {
 
 function formatDate(dateStr) {
     if (!dateStr) return "";
+    // Nếu là chuỗi có định dạng datetime-local (chứa ký tự 'T')
+    if (dateStr.includes('T')) {
+        const [datePart, timePart] = dateStr.split('T');
+        const [year, month, day] = datePart.split('-');
+        const time = timePart.substring(0, 5); // Lấy "HH:mm"
+        return `${day}/${month}/${year} ${time}`;
+    }
+    // Dữ liệu cũ chỉ có YYYY-MM-DD
     const [year, month, day] = dateStr.split('-');
     return `${day}/${month}/${year}`;
 }
@@ -1905,7 +1950,9 @@ function formatTimestamp(timestamp) {
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
 // ==========================================
