@@ -1132,7 +1132,8 @@ function renderCalendar() {
     
     // First day of current month (starts on Sunday = 0, Monday = 1...)
     const firstDayIndex = new Date(year, month, 1).getDay();
-    const adjustedFirstDayIndex = firstDayIndex; // Sunday starts, so it matches index exactly!
+    // Adjust Sunday to be index 6 (to start week with Monday: Monday = 0, ..., Sunday = 6)
+    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
     
     // Number of days in current month
     const totalDays = new Date(year, month + 1, 0).getDate();
