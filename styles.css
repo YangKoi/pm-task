@@ -2510,12 +2510,16 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 
 .calendar-nav-buttons {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     border: 1px solid var(--bg-card-border);
     border-radius: var(--border-radius-md);
     background-color: rgba(0, 0, 0, 0.15);
     overflow: hidden;
+    width: 78px;
+    min-width: 78px;
+    height: 38px;
+    flex-shrink: 0;
 }
 [data-theme="light"] .calendar-nav-buttons {
     background-color: rgba(0, 0, 0, 0.02);
@@ -2530,6 +2534,7 @@ input[type="range"]::-moz-range-thumb:hover {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 .calendar-nav-buttons .cal-nav-btn:first-child {
     border-right: 1px solid var(--bg-card-border);
