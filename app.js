@@ -83,19 +83,9 @@ const VIETNAMESE_MONTHS = [
     "Tháng Bảy", "Tháng Tám", "Tháng Chín", "Tháng Mười", "Tháng Mười Một", "Tháng Mười Hai"
 ];
 
-// --- Default Firebase Configuration (Zero-Config Fallback) ---
-// HƯỚNG DẪN DÀNH CHO NHÀ PHÁT TRIỂN (DEVELOPER):
-// Tạo một dự án Firebase dùng chung và điền cấu hình Web App của bạn dưới đây.
-// Người dùng phổ thông sẽ có thể sử dụng ngay nút "Đăng nhập Google" mà không cần bất kỳ cấu hình nào.
-const DEFAULT_FIREBASE_CONFIG = {
-    apiKey: "AIzaSyAAGlyo2NCpkL03v_U8GOCPfj8ttWKK4kc",
-    authDomain: "tg-task-21ab7.firebaseapp.com",
-    projectId: "tg-task-21ab7",
-    storageBucket: "tg-task-21ab7.firebasestorage.app",
-    messagingSenderId: "1024628601993",
-    appId: "1:1024628601993:web:f5f97a4b0a9f1adbfcc258",
-    measurementId: "G-0TECHHJTQS"
-};
+// --- Google Drive Client Credentials ---
+let gdriveClientId = "";
+let gdriveAccessToken = "";
 
 // --- Application State ---
 let tasks = [];
@@ -110,15 +100,12 @@ let currentTheme = "dark";
 let currentPeriodFilter = "all"; // 'all' | 'week' | 'month'
 let currentDateFilter = ""; // 'YYYY-MM-DD' | ''
 let activeMobileKanbanColumn = "todo"; // Cột Kanban active hiện tại trên mobile
-
-// --- Firebase State ---
-let firebaseApp = null;
-let db = null;
-let auth = null;
-let currentUser = null;
-let isFirebaseConfigured = false;
-let activeFirebaseConfigType = "none"; // 'none' | 'default' | 'custom'
-let isSyncing = false;
+// --- Google Drive Sync State ---
+let isGDriveConfigured = false;
+let isSyncingGDrive = false;
+let gdriveUserEmail = "";
+let gdriveUserName = "";
+let gdriveUserAvatar = "";
 
 // --- DOM Elements ---
 const viewBoardBtn = document.getElementById("view-board-btn");
@@ -183,23 +170,19 @@ const exportBtn = document.getElementById("export-btn");
 const importTriggerBtn = document.getElementById("import-trigger-btn");
 const importFileInput = document.getElementById("import-file-input");
 
-// Firebase UI Elements
+// Google Drive UI Elements
 const userProfileSection = document.getElementById("user-profile-section");
-const cloudConfigBtn = document.getElementById("cloud-config-btn");
-const cloudConfigModal = document.getElementById("cloud-config-modal");
-const closeCloudModalBtn = document.getElementById("close-cloud-modal-btn");
-const cancelCloudModalBtn = document.getElementById("cancel-cloud-modal-btn");
-const cloudConfigForm = document.getElementById("cloud-config-form");
-const resetCloudConfigBtn = document.getElementById("reset-cloud-config-btn");
-const cloudStatusBanner = document.getElementById("cloud-status-banner");
-const cloudStatusText = document.getElementById("cloud-status-text");
+const gdriveConfigBtn = document.getElementById("gdrive-config-btn");
+const gdriveConfigModal = document.getElementById("gdrive-config-modal");
+const closeGDriveModalBtn = document.getElementById("close-gdrive-modal-btn");
+const cancelGDriveModalBtn = document.getElementById("cancel-gdrive-modal-btn");
+const gdriveConfigForm = document.getElementById("gdrive-config-form");
+const resetGDriveConfigBtn = document.getElementById("reset-gdrive-config-btn");
+const gdriveStatusBanner = document.getElementById("gdrive-status-banner");
+const gdriveStatusText = document.getElementById("gdrive-status-text");
 
-const cloudApiKey = document.getElementById("cloud-apiKey");
-const cloudAuthDomain = document.getElementById("cloud-authDomain");
-const cloudProjectId = document.getElementById("cloud-projectId");
-const cloudStorageBucket = document.getElementById("cloud-storageBucket");
-const cloudMessagingSenderId = document.getElementById("cloud-messagingSenderId");
-const cloudAppId = document.getElementById("cloud-appId");
+const gdriveClientIdInput = document.getElementById("gdrive-client-id");
+const gdriveSyncBtn = document.getElementById("gdrive-sync-btn");
 
 // Auth Modal Elements
 const authModal = document.getElementById("auth-modal");
@@ -227,7 +210,7 @@ const clearDateFilterBtn = document.getElementById("clear-date-filter");
 document.addEventListener("DOMContentLoaded", () => {
     loadTheme();
     loadTasks();
-    initFirebase();
+    loadGDriveConfig();
     setGreeting();
     initTimeDropdowns(); // Khởi tạo giờ/phút dạng 24h
     setupEventListeners();
@@ -332,130 +315,72 @@ async function saveTasks() {
     // 1. Lưu LocalStorage trước (luôn luôn an toàn offline)
     localStorage.setItem("tgtask_tasks", JSON.stringify(tasks));
     
-    // 2. Nếu đăng nhập và Firebase hoạt động, đẩy lên Cloud
-    if (db && currentUser) {
+    // 2. Nếu đã đăng nhập và đồng bộ Google Drive hoạt động, đẩy lên Cloud
+    if (gdriveAccessToken) {
         try {
-            const userDocRef = db.collection("users").doc(currentUser.uid).collection("data").doc("tasksDoc");
-            await userDocRef.set({
-                tasks: tasks,
-                syncedAt: Date.now()
-            });
+            // Đẩy không đồng bộ lên Google Drive trong nền
+            uploadTasksToGDrive().catch(err => console.error("Lỗi upload nền:", err));
         } catch (e) {
-            console.error("Lỗi đồng bộ Cloud khi lưu task:", e);
+            console.error("Lỗi tự động lưu lên Google Drive:", e);
         }
     }
 }
 
-// --- Firebase Initialization & Methods ---
-function initFirebase() {
-    let config = null;
-    let isCustom = false;
+// --- Google Drive Sync Methods ---
+function loadGDriveConfig() {
+    gdriveClientId = localStorage.getItem("tgtask_gdrive_client_id") || "";
+    gdriveAccessToken = localStorage.getItem("tgtask_gdrive_access_token") || "";
+    const expiresAt = parseInt(localStorage.getItem("tgtask_gdrive_token_expires") || "0");
     
-    // 1. Đọc cấu hình cá nhân từ LocalStorage
-    try {
-        const storedConfig = localStorage.getItem("tgtask_firebase_config");
-        if (storedConfig) {
-            config = JSON.parse(storedConfig);
-            isCustom = true;
-        }
-    } catch (e) {
-        console.error("Lỗi đọc cấu hình Firebase từ LocalStorage:", e);
-    }
-
-    // 2. Tự động fallback sang cấu hình mặc định nếu không có cấu hình cá nhân
-    if (!config && DEFAULT_FIREBASE_CONFIG && DEFAULT_FIREBASE_CONFIG.apiKey) {
-        config = DEFAULT_FIREBASE_CONFIG;
-        isCustom = false;
-    }
-
-    // Badge trên Sidebar biểu thị đã thiết lập cấu hình Cloud (hiện chấm nhỏ màu tím)
-    // Nó sáng lên khi có cấu hình cá nhân hoạt động
-    updateCloudConfigBadge(isCustom);
-
-    if (!config || !config.apiKey) {
-        isFirebaseConfigured = false;
-        activeFirebaseConfigType = "none";
-        renderUserProfile();
-        return;
-    }
-
-    activeFirebaseConfigType = isCustom ? "custom" : "default";
-
-    try {
-        if (window.firebase && firebase.apps.length === 0) {
-            firebaseApp = firebase.initializeApp(config);
-        } else if (window.firebase) {
-            firebaseApp = firebase.app();
-        }
-        
-        if (window.firebase) {
-            db = firebase.firestore();
-            auth = firebase.auth();
-            isFirebaseConfigured = true;
-
-            // Lắng nghe thay đổi trạng thái đăng nhập
-            auth.onAuthStateChanged(async (user) => {
-                currentUser = user;
-                renderUserProfile();
-                
-                if (user) {
-                    await syncAndLoadTasks();
-                } else {
-                    loadTasks();
-                    renderAll();
-                    renderSidebarCategories();
-                }
-            });
+    if (gdriveClientId) {
+        isGDriveConfigured = true;
+        // Kiểm tra xem token cũ còn hạn không
+        if (gdriveAccessToken && Date.now() < expiresAt) {
+            gdriveUserEmail = localStorage.getItem("tgtask_gdrive_user_email") || "";
+            gdriveUserName = localStorage.getItem("tgtask_gdrive_user_name") || "";
+            gdriveUserAvatar = localStorage.getItem("tgtask_gdrive_user_avatar") || "";
+            // Tự động đồng bộ ngay khi load trang
+            syncWithGDrive();
         } else {
-            isFirebaseConfigured = false;
-            activeFirebaseConfigType = "none";
-            renderUserProfile();
+            gdriveAccessToken = ""; // Token đã hết hạn
         }
-    } catch (e) {
-        console.error("Lỗi khởi tạo Firebase:", e);
-        isFirebaseConfigured = false;
-        activeFirebaseConfigType = "none";
-        renderUserProfile();
     }
+    updateGDriveConfigBadge(isGDriveConfigured);
+    renderUserProfile();
 }
 
-function updateCloudConfigBadge(configured) {
-    if (!cloudConfigBtn) return;
-    const oldBadge = cloudConfigBtn.querySelector(".cloud-configured-badge");
+function updateGDriveConfigBadge(configured) {
+    if (!gdriveConfigBtn) return;
+    const oldBadge = gdriveConfigBtn.querySelector(".gdrive-configured-badge");
     if (oldBadge) oldBadge.remove();
 
     if (configured) {
         const badge = document.createElement("span");
-        badge.className = "cloud-configured-badge";
-        cloudConfigBtn.appendChild(badge);
+        badge.className = "gdrive-configured-badge";
+        badge.style.cssText = "display: inline-block; width: 6px; height: 6px; background-color: var(--color-primary); border-radius: 50%; margin-left: 8px;";
+        gdriveConfigBtn.appendChild(badge);
     }
 }
 
 function renderUserProfile() {
     if (!userProfileSection) return;
-    const loginGoogleBtnBottom = document.getElementById("login-google-btn-bottom");
 
-    if (!isFirebaseConfigured) {
+    if (!isGDriveConfigured) {
         // 1. Render premium offline status in top profile section
         userProfileSection.innerHTML = `
             <div class="user-profile-card unauthenticated" style="background: rgba(255,255,255,0.01); border-color: rgba(255,255,255,0.03);">
                 <div class="sync-status" style="justify-content: center; width: 100%; gap: 0.4rem; padding: 0.15rem 0;">
                     <span class="sync-badge" style="background-color: var(--color-text-muted); box-shadow: none; animation: none; width: 6px; height: 6px;"></span>
-                    <span style="font-size: 0.725rem; font-weight: 600; opacity: 0.75; cursor: pointer; text-decoration: underline;" id="cloud-setup-tip">Chế độ: Cục bộ (Offline)</span>
+                    <span style="font-size: 0.725rem; font-weight: 600; opacity: 0.75; cursor: pointer; text-decoration: underline;" id="gdrive-setup-tip">Chế độ: Cục bộ (Offline)</span>
                 </div>
             </div>
         `;
         
-        // 2. Control bottom Google Login button
-        if (loginGoogleBtnBottom) {
-            loginGoogleBtnBottom.style.display = "flex";
-        }
-
-        const setupTip = document.getElementById("cloud-setup-tip");
+        const setupTip = document.getElementById("gdrive-setup-tip");
         if (setupTip) {
             setupTip.addEventListener("click", () => {
-                openCloudConfigModal();
-                const modalCard = cloudConfigModal ? cloudConfigModal.querySelector(".modal-card") : null;
+                openGDriveConfigModal();
+                const modalCard = gdriveConfigModal ? gdriveConfigModal.querySelector(".modal-card") : null;
                 if (modalCard) {
                     modalCard.classList.remove("shake-animation");
                     void modalCard.offsetWidth; // Trigger reflow to restart animation
@@ -466,49 +391,36 @@ function renderUserProfile() {
                 }
             });
         }
-    } else if (isSyncing) {
-        // Hide bottom Google Login button during loading / syncing
-        if (loginGoogleBtnBottom) {
-            loginGoogleBtnBottom.style.display = "none";
-        }
-        
+    } else if (isSyncingGDrive) {
         userProfileSection.innerHTML = `
             <div class="user-profile-card">
-                <div class="user-profile-loading">
-                    <i data-lucide="loader" class="spin"></i>
-                    <span>Đang đồng bộ Cloud...</span>
+                <div class="user-profile-loading" style="display: flex; align-items: center; gap: 0.5rem; justify-content: center; width: 100%; font-size: 0.8rem; color: var(--color-text-muted);">
+                    <i data-lucide="loader" class="spin" style="width: 14px; height: 14px; animation: spin 1s linear infinite;"></i>
+                    <span>Đang đồng bộ Drive...</span>
                 </div>
             </div>
         `;
-    } else if (!currentUser) {
+    } else if (!gdriveAccessToken) {
         // 1. Render premium cloud ready status in top profile section
         userProfileSection.innerHTML = `
             <div class="user-profile-card unauthenticated" style="background: rgba(255,255,255,0.01); border-color: rgba(255,255,255,0.03);">
                 <div class="sync-status" style="justify-content: center; width: 100%; gap: 0.4rem; padding: 0.15rem 0;">
                     <span class="sync-badge" style="background-color: var(--color-primary-light); box-shadow: 0 0 6px var(--color-primary); animation: sync-pulse 1.8s infinite ease-in-out; width: 6px; height: 6px;"></span>
-                    <span style="font-size: 0.725rem; font-weight: 600; opacity: 0.85;">Đám mây đã sẵn sàng</span>
+                    <span style="font-size: 0.725rem; font-weight: 600; opacity: 0.85; cursor: pointer;" id="gdrive-quick-login-tip">Sẵn sàng đồng bộ hóa</span>
                 </div>
             </div>
         `;
-        
-        // 2. Control bottom Google Login button
-        if (loginGoogleBtnBottom) {
-            loginGoogleBtnBottom.style.display = "flex";
+        const quickLoginTip = document.getElementById("gdrive-quick-login-tip");
+        if (quickLoginTip) {
+            quickLoginTip.addEventListener("click", loginAndSyncGDrive);
         }
     } else {
-        // Hide bottom Google Login button when successfully authenticated
-        if (loginGoogleBtnBottom) {
-            loginGoogleBtnBottom.style.display = "none";
-        }
-        
-        const displayName = currentUser.displayName || currentUser.email || "Người dùng TG-Task";
-        const isDefault = activeFirebaseConfigType === "default";
-        const syncText = isDefault ? "Đã đồng bộ Cloud" : "Đồng bộ Cloud riêng";
-        const badgeStyle = isDefault ? "" : "background-color: #10b981; box-shadow: 0 0 8px #10b981;";
+        const displayName = gdriveUserName || gdriveUserEmail || "Người dùng Google";
+        const syncText = "Đã đồng bộ Drive";
         
         let avatarHTML = "";
-        if (currentUser.photoURL) {
-            avatarHTML = `<img class="user-avatar" src="${currentUser.photoURL}" referrerpolicy="no-referrer" alt="${displayName}">`;
+        if (gdriveUserAvatar) {
+            avatarHTML = `<img class="user-avatar" src="${gdriveUserAvatar}" referrerpolicy="no-referrer" alt="${displayName}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--color-primary-light);">`;
         } else {
             const firstLetter = displayName.charAt(0).toUpperCase();
             const colors = [
@@ -520,34 +432,33 @@ function renderUserProfile() {
                 "linear-gradient(135deg, #f87171 0%, #dc2626 100%)"
             ];
             let hash = 0;
-            const uid = currentUser.uid || "";
-            for (let i = 0; i < uid.length; i++) {
-                hash = uid.charCodeAt(i) + ((hash << 5) - hash);
+            for (let i = 0; i < displayName.length; i++) {
+                hash = displayName.charCodeAt(i) + ((hash << 5) - hash);
             }
             const gradientIndex = Math.abs(hash) % colors.length;
             const gradient = colors[gradientIndex];
-            avatarHTML = `<div class="user-avatar letter-avatar" style="background: ${gradient}">${firstLetter}</div>`;
+            avatarHTML = `<div class="user-avatar letter-avatar" style="background: ${gradient}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; font-size: 1rem;">${firstLetter}</div>`;
         }
         
         userProfileSection.innerHTML = `
-            <div class="user-profile-card authenticated">
-                <div class="user-avatar-wrapper">
+            <div class="user-profile-card authenticated" style="display: flex; align-items: center; gap: 0.65rem; width: 100%; background: rgba(255,255,255,0.02); border: 1px solid var(--bg-card-border); padding: 0.65rem; border-radius: var(--border-radius-md);">
+                <div class="user-avatar-wrapper" style="flex-shrink: 0;">
                     ${avatarHTML}
                 </div>
-                <div class="user-details">
-                    <h4 class="user-name" title="${displayName}">${displayName}</h4>
-                    <div class="sync-status">
-                        <span class="sync-badge" style="${badgeStyle}"></span>
-                        <span class="sync-text-status" style="font-size: 0.7rem; font-weight: 500; opacity: 0.85;">${syncText}</span>
+                <div class="user-details" style="flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; gap: 0.15rem; text-align: left;">
+                    <h4 class="user-name" title="${displayName}" style="margin: 0; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--color-text);">${displayName}</h4>
+                    <div class="sync-status" style="display: flex; align-items: center; gap: 0.3rem;">
+                        <span class="sync-badge" style="display: inline-block; width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981;"></span>
+                        <span class="sync-text-status" style="font-size: 0.65rem; font-weight: 500; opacity: 0.85; color: var(--color-text-muted);">${syncText}</span>
                     </div>
                 </div>
-                <button class="btn-logout" id="logout-btn" title="Đăng xuất">
-                    <i data-lucide="log-out"></i>
+                <button class="btn-logout" id="gdrive-logout-btn" title="Đăng xuất" style="background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: var(--border-radius-sm); transition: all 0.2s ease;">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px;"></i>
                 </button>
             </div>
         `;
-        const logoutBtn = document.getElementById("logout-btn");
-        if (logoutBtn) logoutBtn.addEventListener("click", logout);
+        const logoutBtn = document.getElementById("gdrive-logout-btn");
+        if (logoutBtn) logoutBtn.addEventListener("click", logoutGDrive);
     }
     
     if (window.lucide) {
@@ -555,46 +466,213 @@ function renderUserProfile() {
     }
 }
 
-
-async function loginWithGoogle() {
-    if (!auth) return;
+async function fetchUserInfo() {
+    if (!gdriveAccessToken) return;
     try {
-        isSyncing = true;
-        renderUserProfile();
-        const provider = new firebase.auth.GoogleAuthProvider();
-        await auth.signInWithPopup(provider);
-    } catch (e) {
-        console.error("Lỗi đăng nhập Google:", e);
-        showToast("Đăng nhập thất bại: " + e.message, "error");
-        isSyncing = false;
-        renderUserProfile();
-    }
-}
-
-async function logout() {
-    if (!auth) return;
-    if (confirm("Bạn có chắc chắn muốn đăng xuất? Ứng dụng sẽ chuyển về chế độ Offline (LocalStorage).")) {
-        try {
-            isSyncing = true;
-            renderUserProfile();
-            await auth.signOut();
-        } catch (e) {
-            console.error("Lỗi đăng xuất:", e);
-        } finally {
-            isSyncing = false;
+        const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+            headers: {
+                "Authorization": `Bearer ${gdriveAccessToken}`
+            }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            gdriveUserEmail = data.email || "";
+            gdriveUserName = data.name || data.email || "";
+            gdriveUserAvatar = data.picture || "";
+            
+            localStorage.setItem("tgtask_gdrive_user_email", gdriveUserEmail);
+            localStorage.setItem("tgtask_gdrive_user_name", gdriveUserName);
+            localStorage.setItem("tgtask_gdrive_user_avatar", gdriveUserAvatar);
+        } else {
+            console.error("Lỗi fetch user info status:", response.status);
         }
+    } catch (e) {
+        console.error("Lỗi lấy thông tin người dùng Google:", e);
     }
 }
 
-async function syncAndLoadTasks() {
-    if (!db || !currentUser) return;
+function loginAndSyncGDrive() {
+    if (!gdriveClientId) {
+        showToast("Vui lòng thiết lập Google Client ID trong mục 'Cấu hình Google Drive' trước!", "warning");
+        openGDriveConfigModal();
+        return;
+    }
     
-    isSyncing = true;
-    renderUserProfile();
-
     try {
-        const userDocRef = db.collection("users").doc(currentUser.uid).collection("data").doc("tasksDoc");
-        const doc = await userDocRef.get();
+        isSyncingGDrive = true;
+        renderUserProfile();
+        
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: gdriveClientId,
+            scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+            callback: async (tokenResponse) => {
+                if (tokenResponse && tokenResponse.access_token) {
+                    gdriveAccessToken = tokenResponse.access_token;
+                    const expiresAt = Date.now() + tokenResponse.expires_in * 1000;
+                    
+                    localStorage.setItem("tgtask_gdrive_access_token", gdriveAccessToken);
+                    localStorage.setItem("tgtask_gdrive_token_expires", expiresAt);
+                    
+                    // Lấy thông tin email người dùng để hiển thị trên Sidebar
+                    await fetchUserInfo();
+                    
+                    // Bắt đầu đồng bộ
+                    await syncWithGDrive();
+                    showToast("Đã kết nối và đồng bộ hóa thành công với Google Drive!", "success");
+                } else {
+                    isSyncingGDrive = false;
+                    renderUserProfile();
+                }
+            },
+            error_callback: (err) => {
+                console.error("Lỗi xác thực Google:", err);
+                showToast("Đăng nhập thất bại: " + (err.message || err.error || "Lỗi chưa xác định"), "error");
+                isSyncingGDrive = false;
+                renderUserProfile();
+            }
+        });
+        
+        // Yêu cầu token qua Popup của Google
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    } catch (e) {
+        console.error("Lỗi khởi tạo đăng nhập Google:", e);
+        showToast("Không thể khởi động đăng nhập Google. Hãy kiểm tra lại Client ID hoặc kết nối mạng.", "error");
+        isSyncingGDrive = false;
+        renderUserProfile();
+    }
+}
+
+function logoutGDrive() {
+    if (confirm("Bạn có chắc chắn muốn đăng xuất tài khoản Google? Ứng dụng sẽ dừng đồng bộ và quay về chế độ ngoại tuyến.")) {
+        gdriveAccessToken = "";
+        gdriveUserEmail = "";
+        gdriveUserName = "";
+        gdriveUserAvatar = "";
+        
+        localStorage.removeItem("tgtask_gdrive_access_token");
+        localStorage.removeItem("tgtask_gdrive_token_expires");
+        localStorage.removeItem("tgtask_gdrive_user_email");
+        localStorage.removeItem("tgtask_gdrive_user_name");
+        localStorage.removeItem("tgtask_gdrive_user_avatar");
+        
+        showToast("Đã đăng xuất tài khoản Google thành công!", "success");
+        renderUserProfile();
+    }
+}
+
+async function findGDriveFile() {
+    if (!gdriveAccessToken) return null;
+    try {
+        const query = encodeURIComponent("name = 'tgtask_backup.json' and 'appDataFolder' in parents and trashed = false");
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&spaces=appDataFolder&fields=files(id,name)`, {
+            headers: {
+                "Authorization": `Bearer ${gdriveAccessToken}`
+            }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data.files && data.files.length > 0) {
+                return data.files[0].id;
+            }
+        } else {
+            console.error("Lỗi tìm kiếm file trên Drive:", response.status);
+        }
+    } catch (e) {
+        console.error("Lỗi findGDriveFile:", e);
+    }
+    return null;
+}
+
+async function downloadGDriveFile(fileId) {
+    if (!gdriveAccessToken || !fileId) return null;
+    try {
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+            headers: {
+                "Authorization": `Bearer ${gdriveAccessToken}`
+            }
+        });
+        if (response.ok) {
+            return await response.json();
+        } else {
+            console.error("Lỗi tải file từ Drive:", response.status);
+        }
+    } catch (e) {
+        console.error("Lỗi downloadGDriveFile:", e);
+    }
+    return null;
+}
+
+async function uploadTasksToGDrive() {
+    if (!gdriveAccessToken) return;
+    
+    try {
+        const fileId = await findGDriveFile();
+        const fileContent = JSON.stringify({
+            tasks: tasks,
+            updatedAt: Date.now()
+        });
+        
+        let url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+        let method = "POST";
+        
+        if (fileId) {
+            url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
+            method = "PATCH";
+        }
+        
+        const boundary = "314159265358979323846";
+        const delimiter = `\r\n--${boundary}\r\n`;
+        const closeDelimiter = `\r\n--${boundary}--\r\n`;
+        
+        const metadata = {
+            name: "tgtask_backup.json",
+            mimeType: "application/json"
+        };
+        
+        if (!fileId) {
+            metadata.parents = ["appDataFolder"];
+        }
+        
+        const multipartBody = 
+            delimiter +
+            "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
+            JSON.stringify(metadata) +
+            delimiter +
+            "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
+            fileContent +
+            closeDelimiter;
+            
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                "Authorization": `Bearer ${gdriveAccessToken}`,
+                "Content-Type": `multipart/related; boundary=${boundary}`
+            },
+            body: multipartBody
+        });
+        
+        if (response.ok) {
+            console.log("Đã đẩy dữ liệu thành công lên Google Drive!");
+        } else {
+            console.error("Lỗi upload dữ liệu lên Drive:", response.status, await response.text());
+        }
+    } catch (e) {
+        console.error("Lỗi uploadTasksToGDrive:", e);
+    }
+}
+
+async function syncWithGDrive() {
+    if (!gdriveAccessToken) return;
+    
+    isSyncingGDrive = true;
+    renderUserProfile();
+    
+    try {
+        const fileId = await findGDriveFile();
+        let cloudData = null;
+        if (fileId) {
+            cloudData = await downloadGDriveFile(fileId);
+        }
         
         let localTasks = [];
         const storedLocal = localStorage.getItem("tgtask_tasks");
@@ -605,19 +683,18 @@ async function syncAndLoadTasks() {
                 console.error("Lỗi parse local tasks", e);
             }
         }
-
-        let cloudTasks = [];
-        if (doc.exists) {
-            cloudTasks = doc.data().tasks || [];
-        }
-
+        
+        let cloudTasks = (cloudData && cloudData.tasks) ? cloudData.tasks : [];
+        
         // Hợp nhất dữ liệu thông minh
         const mergedMap = new Map();
-
+        
+        // Nạp cloud tasks trước
         cloudTasks.forEach(task => {
             mergedMap.set(task.id, task);
         });
-
+        
+        // Hợp nhất local tasks dựa trên updatedAt / createdAt
         localTasks.forEach(localTask => {
             if (!mergedMap.has(localTask.id)) {
                 mergedMap.set(localTask.id, localTask);
@@ -630,21 +707,22 @@ async function syncAndLoadTasks() {
                 }
             }
         });
-
-        const mergedTasks = Array.from(mergedMap.values());
-        tasks = mergedTasks;
         
+        tasks = Array.from(mergedMap.values());
+        
+        // Lưu lại máy
         localStorage.setItem("tgtask_tasks", JSON.stringify(tasks));
-        await userDocRef.set({
-            tasks: tasks,
-            syncedAt: Date.now()
-        });
-
+        
+        // Đẩy lên cloud
+        await uploadTasksToGDrive();
+        
+        // Đồng bộ hoàn tất
+        showToast("Đồng bộ dữ liệu với Google Drive hoàn tất!", "success");
     } catch (e) {
-        console.error("Lỗi đồng bộ dữ liệu đám mây:", e);
-        loadTasks();
+        console.error("Lỗi trong quá trình đồng bộ Drive:", e);
+        showToast("Lỗi đồng bộ hóa dữ liệu Google Drive!", "error");
     } finally {
-        isSyncing = false;
+        isSyncingGDrive = false;
         renderUserProfile();
         renderAll();
         renderSidebarCategories();
@@ -868,33 +946,31 @@ function setupEventListeners() {
     importTriggerBtn.addEventListener("click", () => importFileInput.click());
     importFileInput.addEventListener("change", importData);
 
-    // Cloud configuration events
-    if (cloudConfigBtn) {
-        cloudConfigBtn.addEventListener("click", openCloudConfigModal);
+    // Google Drive configuration events
+    if (gdriveConfigBtn) {
+        gdriveConfigBtn.addEventListener("click", openGDriveConfigModal);
     }
-    if (closeCloudModalBtn) {
-        closeCloudModalBtn.addEventListener("click", closeCloudConfigModal);
+    if (closeGDriveModalBtn) {
+        closeGDriveModalBtn.addEventListener("click", closeGDriveConfigModal);
     }
-    if (cancelCloudModalBtn) {
-        cancelCloudModalBtn.addEventListener("click", closeCloudConfigModal);
+    if (cancelGDriveModalBtn) {
+        cancelGDriveModalBtn.addEventListener("click", closeGDriveConfigModal);
     }
-    if (cloudConfigForm) {
-        cloudConfigForm.addEventListener("submit", handleCloudConfigSubmit);
+    if (gdriveConfigForm) {
+        gdriveConfigForm.addEventListener("submit", handleGDriveConfigSubmit);
     }
-    if (resetCloudConfigBtn) {
-        resetCloudConfigBtn.addEventListener("click", handleResetCloudConfig);
+    if (resetGDriveConfigBtn) {
+        resetGDriveConfigBtn.addEventListener("click", handleResetGDriveConfig);
     }
 
-    // Gán sự kiện click duy nhất cho nút Đăng nhập Google dưới cùng
-    const loginGoogleBtnBottom = document.getElementById("login-google-btn-bottom");
-    if (loginGoogleBtnBottom) {
-        loginGoogleBtnBottom.addEventListener("click", () => {
-            if (!isFirebaseConfigured) {
-                showToast("Hệ thống chưa thiết lập Đám mây dùng chung. Vui lòng bấm 'Cấu hình Cloud' bên trên để tự kết nối dự án của bạn!", "warning");
-                openCloudConfigModal();
-                // Tạo hiệu ứng rung lắc cho modal để thu hút sự chú ý
+    // Google Drive Login & Sync
+    if (gdriveSyncBtn) {
+        gdriveSyncBtn.addEventListener("click", () => {
+            if (!isGDriveConfigured) {
+                showToast("Vui lòng nhập Google Client ID trong mục 'Cấu hình Google Drive' trước!", "warning");
+                openGDriveConfigModal();
                 setTimeout(() => {
-                    const modalCard = cloudConfigModal ? cloudConfigModal.querySelector(".modal-card") : null;
+                    const modalCard = gdriveConfigModal ? gdriveConfigModal.querySelector(".modal-card") : null;
                     if (modalCard) {
                         modalCard.classList.remove("shake-animation");
                         void modalCard.offsetWidth;
@@ -902,44 +978,9 @@ function setupEventListeners() {
                     }
                 }, 300);
             } else {
-                openAuthModal();
+                loginAndSyncGDrive();
             }
         });
-    }
-
-    // Auth Modal Events
-    if (closeAuthModalBtn) {
-        closeAuthModalBtn.addEventListener("click", closeAuthModal);
-    }
-    if (tabSigninBtn) {
-        tabSigninBtn.addEventListener("click", () => switchAuthTab("signin"));
-    }
-    if (tabSignupBtn) {
-        tabSignupBtn.addEventListener("click", () => switchAuthTab("signup"));
-    }
-    if (linkGoSignup) {
-        linkGoSignup.addEventListener("click", (e) => {
-            e.preventDefault();
-            switchAuthTab("signup");
-        });
-    }
-    if (linkGoSignin) {
-        linkGoSignin.addEventListener("click", (e) => {
-            e.preventDefault();
-            switchAuthTab("signin");
-        });
-    }
-    if (modalLoginGoogleBtn) {
-        modalLoginGoogleBtn.addEventListener("click", async () => {
-            await loginWithGoogle();
-            closeAuthModal();
-        });
-    }
-    if (signinForm) {
-        signinForm.addEventListener("submit", handleSigninSubmit);
-    }
-    if (signupForm) {
-        signupForm.addEventListener("submit", handleSignupSubmit);
     }
 
     // Toggle password visibility
@@ -2124,238 +2165,92 @@ function animateConfetti() {
     }
 }
 
-// --- Cloud Config Modal Control ---
-function openCloudConfigModal() {
-    if (!cloudConfigModal) return;
+// --- Google Drive Config Modal Control ---
+function openGDriveConfigModal() {
+    if (!gdriveConfigModal) return;
     
-    // Đặt lại các giá trị input trống mặc định
-    cloudApiKey.value = "";
-    cloudAuthDomain.value = "";
-    cloudProjectId.value = "";
-    cloudStorageBucket.value = "";
-    cloudMessagingSenderId.value = "";
-    cloudAppId.value = "";
+    // Đặt lại giá trị input
+    gdriveClientIdInput.value = gdriveClientId || "";
 
-    try {
-        const stored = localStorage.getItem("tgtask_firebase_config");
-        if (stored) {
-            const config = JSON.parse(stored);
-            cloudApiKey.value = config.apiKey || "";
-            cloudAuthDomain.value = config.authDomain || "";
-            cloudProjectId.value = config.projectId || "";
-            cloudStorageBucket.value = config.storageBucket || "";
-            cloudMessagingSenderId.value = config.messagingSenderId || "";
-            cloudAppId.value = config.appId || "";
-        }
-    } catch (e) {
-        console.error("Lỗi điền dữ liệu config:", e);
-    }
-    
     // Cập nhật Banner trạng thái động và hiển thị nút reset tương ứng
-    if (cloudStatusBanner && cloudStatusText) {
-        // Loại bỏ các class style cũ
-        cloudStatusBanner.className = "cloud-status-banner";
+    if (gdriveStatusBanner && gdriveStatusText) {
+        gdriveStatusBanner.className = "cloud-status-banner";
         
-        if (activeFirebaseConfigType === "custom") {
-            cloudStatusBanner.classList.add("status-custom");
-            cloudStatusText.innerHTML = `<strong>Chế độ Cá nhân:</strong> Bạn đang sử dụng cấu hình Firebase cá nhân để kiểm soát và lưu trữ dữ liệu hoàn toàn độc lập.`;
-            if (resetCloudConfigBtn) resetCloudConfigBtn.style.display = "inline-flex";
-        } else if (activeFirebaseConfigType === "default") {
-            cloudStatusBanner.classList.add("status-default");
-            cloudStatusText.innerHTML = `<strong>Chế độ Đám mây tự động:</strong> TG-Task đã được cấu hình sẵn. Mọi tính năng đồng bộ đám mây đã sẵn sàng, bạn chỉ cần nhấn <strong>Đăng nhập Google</strong>!`;
-            if (resetCloudConfigBtn) resetCloudConfigBtn.style.display = "none";
+        if (isGDriveConfigured) {
+            gdriveStatusBanner.className = "cloud-status-banner status-custom";
+            gdriveStatusBanner.style.backgroundColor = "rgba(16, 185, 129, 0.1)";
+            gdriveStatusBanner.style.border = "1px solid rgba(16, 185, 129, 0.2)";
+            gdriveStatusBanner.style.color = "#10b981";
+            gdriveStatusText.innerHTML = `<strong>Đã cấu hình:</strong> Google Client ID đã được thiết lập thành công. Sẵn sàng kết nối!`;
+            if (resetGDriveConfigBtn) resetGDriveConfigBtn.style.display = "inline-flex";
         } else {
-            cloudStatusBanner.classList.add("status-none");
-            cloudStatusText.innerHTML = `<strong>Chưa có Đám mây:</strong> Ứng dụng hiện đang lưu dữ liệu offline trong trình duyệt. Vui lòng thiết lập cấu hình Firebase cá nhân để kích hoạt đồng bộ.`;
-            if (resetCloudConfigBtn) resetCloudConfigBtn.style.display = "none";
+            gdriveStatusBanner.className = "cloud-status-banner status-none";
+            gdriveStatusBanner.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+            gdriveStatusBanner.style.border = "1px solid rgba(239, 68, 68, 0.2)";
+            gdriveStatusBanner.style.color = "#ef4444";
+            gdriveStatusText.innerHTML = `<strong>Chưa cấu hình:</strong> Ứng dụng hiện đang lưu dữ liệu offline trong trình duyệt. Vui lòng thiết lập Client ID của bạn.`;
+            if (resetGDriveConfigBtn) resetGDriveConfigBtn.style.display = "none";
         }
     }
 
-    cloudConfigModal.classList.add("active");
+    gdriveConfigModal.classList.add("active");
     if (window.lucide) lucide.createIcons();
 }
 
-function closeCloudConfigModal() {
-    if (!cloudConfigModal) return;
-    cloudConfigModal.classList.remove("active");
+function closeGDriveConfigModal() {
+    if (!gdriveConfigModal) return;
+    gdriveConfigModal.classList.remove("active");
 }
 
-function handleCloudConfigSubmit(e) {
+function handleGDriveConfigSubmit(e) {
     e.preventDefault();
     
-    const config = {
-        apiKey: cloudApiKey.value.trim(),
-        authDomain: cloudAuthDomain.value.trim(),
-        projectId: cloudProjectId.value.trim(),
-        storageBucket: cloudStorageBucket.value.trim(),
-        messagingSenderId: cloudMessagingSenderId.value.trim(),
-        appId: cloudAppId.value.trim()
-    };
-    
-    try {
-        localStorage.setItem("tgtask_firebase_config", JSON.stringify(config));
-        closeCloudConfigModal();
-        showToast("Đã lưu cấu hình Cloud cá nhân thành công! Đang tự động tải lại...", "success");
-        setTimeout(() => window.location.reload(), 1500);
-    } catch (e) {
-        console.error("Lỗi lưu cấu hình Firebase:", e);
-        showToast("Có lỗi xảy ra khi lưu cấu hình.", "error");
-    }
-}
-
-function handleResetCloudConfig() {
-    if (confirm("Bạn có chắc chắn muốn xóa cấu hình Cloud cá nhân và khôi phục về chế độ Đám mây tự động mặc định của dự án TG-Task không?")) {
-        try {
-            localStorage.removeItem("tgtask_firebase_config");
-            closeCloudConfigModal();
-            showToast("Đã khôi phục cấu hình mặc định thành công! Đang tự khởi động lại...", "success");
-            setTimeout(() => window.location.reload(), 1500);
-        } catch (e) {
-            console.error("Lỗi đặt lại cấu hình Firebase:", e);
-            showToast("Lỗi khi đặt lại cấu hình.", "error");
-        }
-    }
-}
-
-// --- Auth Modal Control ---
-function openAuthModal() {
-    if (!authModal) return;
-    switchAuthTab("signin"); // default tab
-    authModal.classList.add("active");
-}
-
-function closeAuthModal() {
-    if (!authModal) return;
-    authModal.classList.remove("active");
-    // Clear forms
-    if (signinForm) signinForm.reset();
-    if (signupForm) signupForm.reset();
-    // Reset password field types
-    document.querySelectorAll(".auth-input-wrapper input[type='text']").forEach(input => {
-        if (input.id.includes("password")) {
-            input.setAttribute("type", "password");
-            const btn = input.nextElementSibling;
-            if (btn && btn.classList.contains("btn-toggle-password")) {
-                const icon = btn.querySelector("i");
-                if (icon) icon.setAttribute("data-lucide", "eye");
-            }
-        }
-    });
-    if (window.lucide) lucide.createIcons();
-}
-
-function switchAuthTab(tab) {
-    if (tab === "signin") {
-        tabSigninBtn.classList.add("active");
-        tabSignupBtn.classList.remove("active");
-        panelSignin.classList.add("active");
-        panelSignin.style.display = "block";
-        panelSignup.classList.remove("active");
-        panelSignup.style.display = "none";
-    } else {
-        tabSigninBtn.classList.remove("active");
-        tabSignupBtn.classList.add("active");
-        panelSignin.classList.remove("active");
-        panelSignin.style.display = "none";
-        panelSignup.classList.add("active");
-        panelSignup.style.display = "block";
-    }
-}
-
-async function handleSigninSubmit(e) {
-    e.preventDefault();
-    if (!auth) return;
-    
-    const email = document.getElementById("signin-email").value.trim();
-    const password = document.getElementById("signin-password").value;
-    
-    try {
-        isSyncing = true;
-        renderUserProfile();
-        closeAuthModal();
-        await auth.signInWithEmailAndPassword(email, password);
-        showToast("Đăng nhập thành công! Chào mừng quay trở lại.", "success");
-    } catch (error) {
-        console.error("Lỗi đăng nhập Email:", error);
-        let errorMsg = "Đăng nhập thất bại: ";
-        switch (error.code) {
-            case "auth/invalid-email":
-                errorMsg += "Địa chỉ email không hợp lệ.";
-                break;
-            case "auth/user-disabled":
-                errorMsg += "Tài khoản này đã bị vô hiệu hóa.";
-                break;
-            case "auth/user-not-found":
-                errorMsg += "Không tìm thấy tài khoản với email này.";
-                break;
-            case "auth/wrong-password":
-                errorMsg += "Mật khẩu không chính xác.";
-                break;
-            default:
-                errorMsg += error.message;
-        }
-        showToast(errorMsg, "error");
-        isSyncing = false;
-        renderUserProfile();
-        openAuthModal(); // reopen modal so user can correct the password
-    }
-}
-
-async function handleSignupSubmit(e) {
-    e.preventDefault();
-    if (!auth) return;
-    
-    const fullName = document.getElementById("signup-name").value.trim();
-    const email = document.getElementById("signup-email").value.trim();
-    const password = document.getElementById("signup-password").value;
-    const confirmPassword = document.getElementById("signup-confirm-password").value;
-    
-    if (password !== confirmPassword) {
-        showToast("Mật khẩu xác nhận không trùng khớp!", "error");
+    const clientId = gdriveClientIdInput.value.trim();
+    if (!clientId) {
+        showToast("Vui lòng nhập Client ID hợp lệ!", "warning");
         return;
     }
     
     try {
-        isSyncing = true;
+        localStorage.setItem("tgtask_gdrive_client_id", clientId);
+        gdriveClientId = clientId;
+        isGDriveConfigured = true;
+        
+        updateGDriveConfigBadge(true);
+        closeGDriveConfigModal();
+        showToast("Đã lưu cấu hình Google Client ID thành công! Bạn có thể kết nối ngay.", "success");
         renderUserProfile();
-        closeAuthModal();
-        
-        // 1. Create the user
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        
-        // 2. Update display name
-        await userCredential.user.updateProfile({
-            displayName: fullName
-        });
-        
-        // Explicitly trigger renderUserProfile to show displayName immediately
-        currentUser = auth.currentUser;
-        renderUserProfile();
-        
-        showToast(`Đăng ký tài khoản thành công! Chào mừng ${fullName}.`, "success");
-    } catch (error) {
-        console.error("Lỗi đăng ký tài khoản:", error);
-        let errorMsg = "Đăng ký thất bại: ";
-        switch (error.code) {
-            case "auth/email-already-in-use":
-                errorMsg += "Địa chỉ email này đã được sử dụng bởi tài khoản khác.";
-                break;
-            case "auth/invalid-email":
-                errorMsg += "Địa chỉ email không hợp lệ.";
-                break;
-            case "auth/operation-not-allowed":
-                errorMsg += "Đăng ký bằng email/mật khẩu chưa được kích hoạt.";
-                break;
-            case "auth/weak-password":
-                errorMsg += "Mật khẩu quá yếu (tối thiểu 6 ký tự).";
-                break;
-            default:
-                errorMsg += error.message;
+    } catch (e) {
+        console.error("Lỗi lưu cấu hình Google Drive:", e);
+        showToast("Có lỗi xảy ra khi lưu cấu hình.", "error");
+    }
+}
+
+function handleResetGDriveConfig() {
+    if (confirm("Bạn có chắc chắn muốn xóa cấu hình Google Client ID hiện tại không? Mọi tính năng đồng bộ sẽ bị tạm dừng.")) {
+        try {
+            localStorage.removeItem("tgtask_gdrive_client_id");
+            localStorage.removeItem("tgtask_gdrive_access_token");
+            localStorage.removeItem("tgtask_gdrive_token_expires");
+            localStorage.removeItem("tgtask_gdrive_user_email");
+            localStorage.removeItem("tgtask_gdrive_user_name");
+            localStorage.removeItem("tgtask_gdrive_user_avatar");
+            
+            gdriveClientId = "";
+            gdriveAccessToken = "";
+            isGDriveConfigured = false;
+            gdriveUserEmail = "";
+            gdriveUserName = "";
+            gdriveUserAvatar = "";
+            
+            updateGDriveConfigBadge(false);
+            closeGDriveConfigModal();
+            showToast("Đã xóa cấu hình Google Drive thành công!", "success");
+            renderUserProfile();
+        } catch (e) {
+            console.error("Lỗi xóa cấu hình Google Drive:", e);
+            showToast("Lỗi khi xóa cấu hình.", "error");
         }
-        showToast(errorMsg, "error");
-        isSyncing = false;
-        renderUserProfile();
-        openAuthModal(); // reopen modal so user can correct
     }
 }
 
