@@ -84,6 +84,7 @@ const VIETNAMESE_MONTHS = [
 ];
 
 // --- Google Drive Client Credentials ---
+const DEFAULT_GDRIVE_CLIENT_ID = ""; // Dán Google Client ID của bạn vào đây để đồng bộ mặc định không cần cấu hình
 let gdriveClientId = "";
 let gdriveAccessToken = "";
 
@@ -328,7 +329,7 @@ async function saveTasks() {
 
 // --- Google Drive Sync Methods ---
 function loadGDriveConfig() {
-    gdriveClientId = localStorage.getItem("tgtask_gdrive_client_id") || "";
+    gdriveClientId = localStorage.getItem("tgtask_gdrive_client_id") || DEFAULT_GDRIVE_CLIENT_ID || "";
     gdriveAccessToken = localStorage.getItem("tgtask_gdrive_access_token") || "";
     const expiresAt = parseInt(localStorage.getItem("tgtask_gdrive_token_expires") || "0");
     
