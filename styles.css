@@ -1524,6 +1524,138 @@ button {
 }
 
 /* ==========================================================================
+   Mobile-Native UX Premium Upgrades
+   ========================================================================== */
+.mobile-kanban-tabs {
+    display: none; /* Ẩn trên máy tính */
+}
+
+@media (max-width: 768px) {
+    .mobile-kanban-tabs {
+        display: flex;
+        gap: 0.35rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--bg-card-border);
+        padding: 0.35rem;
+        border-radius: var(--border-radius-md);
+        margin-bottom: 1.25rem;
+        overflow-x: auto;
+        scrollbar-width: none;
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    }
+    .mobile-kanban-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    .kanban-tab-btn {
+        flex: 1;
+        padding: 0.65rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--color-text-muted);
+        border-radius: var(--border-radius-sm);
+        text-align: center;
+        white-space: nowrap;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+    .kanban-tab-btn.active {
+        background: var(--color-primary);
+        color: white;
+        box-shadow: 0 4px 12px var(--color-primary-glow);
+    }
+    
+    /* Kanban grid layout on mobile */
+    .kanban-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.25rem;
+    }
+    
+    /* Hide columns not selected on mobile */
+    .kanban-grid .kanban-column {
+        display: none !important;
+    }
+    .kanban-grid .kanban-column.mobile-active {
+        display: flex !important;
+    }
+}
+
+@media (max-width: 580px) {
+    .analytics-grid {
+        grid-template-columns: repeat(2, 1fr) !important; /* Lưới 2x2 hoàn mỹ */
+        gap: 0.75rem !important;
+    }
+    .stat-card {
+        padding: 0.85rem 0.75rem !important;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+        border-radius: var(--border-radius-md) !important;
+    }
+    .stat-card .stat-icon-wrapper {
+        width: 32px;
+        height: 32px;
+    }
+    .stat-card .stat-icon-wrapper i {
+        width: 16px;
+        height: 16px;
+    }
+    .stat-info .stat-label {
+        font-size: 0.7rem;
+    }
+    .stat-info .stat-value {
+        font-size: 1.15rem;
+    }
+    .progress-ring-card {
+        padding: 1rem !important;
+        gap: 1rem;
+    }
+    .progress-ring-container {
+        width: 80px;
+        height: 80px;
+    }
+    .progress-ring {
+        width: 80px;
+        height: 80px;
+    }
+    .progress-ring__circle-bg, .progress-ring__circle {
+        r: 32 !important;
+        cx: 40 !important;
+        cy: 40 !important;
+    }
+    .progress-ring-percentage {
+        font-size: 1.1rem;
+    }
+    .progress-ring-info h4 {
+        font-size: 0.9rem;
+    }
+    .progress-ring-info p {
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .calendar-day-cell {
+        padding: 0.4rem 0.25rem !important;
+        min-height: 80px;
+    }
+    .calendar-day-number {
+        font-size: 0.7rem !important;
+    }
+    .calendar-task-badge {
+        padding: 0.2rem 0.3rem !important;
+        font-size: 0.65rem !important;
+        gap: 0.15rem !important;
+        line-height: 1.2;
+        border-radius: 4px !important;
+    }
+    .calendar-task-badge span:first-child {
+        font-size: 0.7rem !important;
+    }
+}
+
+/* ==========================================================================
    New Premium Upgrades: Assignee Badge, Specific Progress & Checkbox Toggle
    ========================================================================== */
 .card-title-container {

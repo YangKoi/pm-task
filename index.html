@@ -20,7 +20,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="styles.css?v=1.3.2">
+    <link rel="stylesheet" href="styles.css?v=1.4.0">
 </head>
 <body>
     <!-- Canvas for Confetti -->
@@ -243,6 +243,13 @@
             <div class="views-container">
                 <!-- Kanban Board View -->
                 <div class="view-panel active" id="board-view">
+                    <!-- Thanh chuyển cột Kanban trên Mobile -->
+                    <div class="mobile-kanban-tabs" id="mobile-kanban-tabs">
+                        <button class="kanban-tab-btn active" data-column="todo">📋 Cần làm</button>
+                        <button class="kanban-tab-btn" data-column="inprogress">⚡ Đang làm</button>
+                        <button class="kanban-tab-btn" data-column="review">🔍 Đánh giá</button>
+                        <button class="kanban-tab-btn" data-column="completed">✅ Đã xong</button>
+                    </div>
                     <div class="kanban-grid">
                         <!-- Column: To Do -->
                         <div class="kanban-column" data-status="todo" id="col-todo">
@@ -688,6 +695,6 @@
     </div>
 
     <!-- JavaScript logic -->
-    <script src="app.js?v=1.3.2"></script>
+    <script src="app.js?v=1.4.0"></script>
 </body>
 </html>

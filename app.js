@@ -109,6 +109,7 @@ let sortBy = "dueDateAsc";
 let currentTheme = "dark";
 let currentPeriodFilter = "all"; // 'all' | 'week' | 'month'
 let currentDateFilter = ""; // 'YYYY-MM-DD' | ''
+let activeMobileKanbanColumn = "todo"; // Cột Kanban active hiện tại trên mobile
 
 // --- Firebase State ---
 let firebaseApp = null;
@@ -964,6 +965,42 @@ function setupEventListeners() {
             }
         });
     });
+
+    // Mobile Kanban column tab events
+    const tabBtns = document.querySelectorAll(".kanban-tab-btn");
+    tabBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            tabBtns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            const columnId = btn.dataset.column;
+            switchMobileKanbanColumn(columnId);
+        });
+    });
+}
+
+// --- Switch Mobile Kanban Column ---
+function switchMobileKanbanColumn(columnId) {
+    activeMobileKanbanColumn = columnId;
+    
+    // Tìm các element cột Kanban
+    const columns = {
+        todo: document.getElementById("col-todo"),
+        inprogress: document.getElementById("col-inprogress"),
+        review: document.getElementById("col-review"),
+        completed: document.getElementById("col-completed")
+    };
+    
+    // Cập nhật class mobile-active
+    Object.keys(columns).forEach(key => {
+        const col = columns[key];
+        if (col) {
+            if (key === columnId) {
+                col.classList.add("mobile-active");
+            } else {
+                col.classList.remove("mobile-active");
+            }
+        }
+    });
 }
 
 // --- View Switcher ---
@@ -1226,7 +1263,7 @@ function renderCalendar() {
             
             labelText = `${dayNum}`;
             if (i === 0 || dayNum === 1) {
-                labelText = `${dayNum} Thg${prevMonthName}`;
+                labelText = `${dayNum}/${prevMonthName}`;
             }
         } else if (i < adjustedFirstDayIndex + totalDays) {
             // Day of current month
@@ -1235,7 +1272,7 @@ function renderCalendar() {
             
             labelText = `${dayNum}`;
             if (dayNum === 1) {
-                labelText = `${dayNum} Thg${month + 1}`;
+                labelText = `${dayNum}/${month + 1}`;
             }
         } else {
             // Day of next month
@@ -1249,7 +1286,7 @@ function renderCalendar() {
             
             labelText = `${dayNum}`;
             if (dayNum === 1) {
-                labelText = `${dayNum} Thg${nextMonthName}`;
+                labelText = `${dayNum}/${nextMonthName}`;
             }
         }
         
@@ -1340,6 +1377,9 @@ function renderBoardView(filteredTasks) {
     document.getElementById("count-inprogress").textContent = colCounts.inprogress;
     document.getElementById("count-review").textContent = colCounts.review;
     document.getElementById("count-completed").textContent = colCounts.completed;
+
+    // Đồng bộ hiển thị cột mobile
+    switchMobileKanbanColumn(activeMobileKanbanColumn);
 }
 
 // --- Create Task Card Element ---
