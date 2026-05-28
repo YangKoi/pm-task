@@ -1369,7 +1369,26 @@ function renderCalendar() {
             badge.title = `${task.title} (${task.workLocation === 'site' ? 'Tại site' : 'Văn phòng'})`;
             
             const icon = task.workLocation === "site" ? "🚧" : "🏢";
-            badge.innerHTML = `<span>${icon}</span> <span>${escapeHTML(task.title)}</span>`;
+            
+            let assigneeHTML = "";
+            if (task.assignee && task.assignee.trim() !== "") {
+                assigneeHTML = `
+                    <div class="calendar-task-assignee" style="font-size: 0.65rem; opacity: 0.8; margin-top: 4px; display: flex; align-items: center; gap: 4px; font-weight: 500;">
+                        <i data-lucide="user" style="width: 10px; height: 10px; stroke-width: 2.5;"></i>
+                        <span>${escapeHTML(task.assignee)}</span>
+                    </div>
+                `;
+            }
+            
+            badge.innerHTML = `
+                <div style="display: flex; flex-direction: column; width: 100%;">
+                    <div style="display: flex; align-items: flex-start; gap: 0.35rem;">
+                        <span>${icon}</span>
+                        <span style="font-weight: 600;">${escapeHTML(task.title)}</span>
+                    </div>
+                    ${assigneeHTML}
+                </div>
+            `;
             
             badge.addEventListener("click", (e) => {
                 e.stopPropagation();
