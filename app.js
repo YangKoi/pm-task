@@ -1470,15 +1470,33 @@ function createTaskCard(task) {
         const comp = task.subtasks.filter(s => s.completed).length;
         const total = task.subtasks.length;
         const pct = Math.round((comp / total) * 100);
+        
+        let itemsHTML = "";
+        task.subtasks.forEach((sub, idx) => {
+            const checkedClass = sub.completed ? "checked" : "";
+            const textCompletedClass = sub.completed ? "completed-text" : "";
+            itemsHTML += `
+                <li class="card-subtask-item" data-index="${idx}" style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; color: var(--color-text-muted); cursor: pointer; padding: 2px 0;">
+                    <div class="card-subtask-checkbox ${checkedClass}">
+                        <i data-lucide="check" style="width: 8px; height: 8px; stroke-width: 3;"></i>
+                    </div>
+                    <span class="${textCompletedClass}" style="transition: all 0.2s; word-break: break-word;">${escapeHTML(sub.title)}</span>
+                </li>
+            `;
+        });
+        
         subtaskHTML = `
-            <div class="task-card-subtasks">
-                <div class="card-subtask-header">
+            <div class="task-card-subtasks" style="border-top: 1px solid var(--bg-card-border); padding-top: 0.65rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div class="card-subtask-header" style="display: flex; justify-content: space-between; font-size: 0.725rem; color: var(--color-text-muted); font-weight: 600;">
                     <span>Việc phụ</span>
                     <span>${comp}/${total} (${pct}%)</span>
                 </div>
-                <div class="card-progress-bar-bg">
-                    <div class="card-progress-bar-fill" style="width: ${pct}%"></div>
+                <div class="card-progress-bar-bg" style="width: 100%; height: 4px; background-color: var(--bg-card-border); border-radius: var(--border-radius-full); overflow: hidden;">
+                    <div class="card-progress-bar-fill" style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 100%); border-radius: var(--border-radius-full); transition: width 0.3s;"></div>
                 </div>
+                <ul class="card-subtasks-list" style="list-style: none; display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.25rem; max-height: 100px; overflow-y: auto; padding-right: 2px;">
+                    ${itemsHTML}
+                </ul>
             </div>
         `;
     }
@@ -1570,6 +1588,16 @@ function createTaskCard(task) {
     card.querySelector(".delete-btn").addEventListener("click", (e) => {
         e.stopPropagation();
         handleDeleteTask(task.id);
+    });
+
+    // Add click events on card subtask items
+    const subtaskItems = card.querySelectorAll(".card-subtask-item");
+    subtaskItems.forEach(item => {
+        item.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = parseInt(item.dataset.index);
+            toggleCardSubtask(task.id, idx);
+        });
     });
 
     return card;
@@ -1759,7 +1787,15 @@ function handleMoveTask(taskId, newStatus) {
     } else {
         // Dragged out of completed
         if (oldStatus === "completed") {
-            task.progress = 80;
+            if (task.subtasks && task.subtasks.length > 0) {
+                // Nếu có subtasks, uncheck subtask cuối cùng để tiến độ dưới 100%
+                task.subtasks[task.subtasks.length - 1].completed = false;
+                const comp = task.subtasks.filter(s => s.completed).length;
+                const total = task.subtasks.length;
+                task.progress = Math.round((comp / total) * 100);
+            } else {
+                task.progress = 80;
+            }
         }
     }
 
@@ -1780,6 +1816,9 @@ function toggleTaskCompletion(taskId) {
     if (wasCompleted) {
         task.status = "todo";
         task.progress = 0;
+        if (task.subtasks) {
+            task.subtasks.forEach(s => s.completed = false);
+        }
     } else {
         task.status = "completed";
         task.progress = 100;
@@ -1788,6 +1827,36 @@ function toggleTaskCompletion(taskId) {
         }
         triggerConfettiCelebration();
     }
+    saveTasks();
+    renderSidebarCategories();
+    renderAll();
+}
+
+function toggleCardSubtask(taskId, subtaskIndex) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || !task.subtasks || !task.subtasks[subtaskIndex]) return;
+
+    const wasCompleted = task.status === "completed";
+    
+    // Toggle completed state of subtask
+    task.subtasks[subtaskIndex].completed = !task.subtasks[subtaskIndex].completed;
+
+    // Recalculate progress
+    const comp = task.subtasks.filter(s => s.completed).length;
+    const total = task.subtasks.length;
+    task.progress = Math.round((comp / total) * 100);
+
+    // Auto-update status based on progress
+    if (task.progress === 100) {
+        task.status = "completed";
+        if (!wasCompleted) {
+            triggerConfettiCelebration();
+        }
+    } else if (wasCompleted && task.progress < 100) {
+        task.status = "inprogress";
+    }
+
+    task.updatedAt = Date.now();
     saveTasks();
     renderSidebarCategories();
     renderAll();
@@ -1885,6 +1954,33 @@ function closeModal() {
     tempSubtasks = [];
 }
 
+function syncModalProgressWithSubtasks() {
+    if (!taskProgressInput || !progressValLabel || !taskStatusInput) return;
+
+    if (tempSubtasks && tempSubtasks.length > 0) {
+        const comp = tempSubtasks.filter(s => s.completed).length;
+        const total = tempSubtasks.length;
+        const pct = Math.round((comp / total) * 100);
+        
+        taskProgressInput.value = pct;
+        progressValLabel.textContent = `${pct}%`;
+        taskProgressInput.disabled = true;
+        taskProgressInput.style.opacity = "0.6";
+        taskProgressInput.style.cursor = "not-allowed";
+        
+        // Sync status dynamic
+        if (pct === 100) {
+            taskStatusInput.value = "completed";
+        } else if (taskStatusInput.value === "completed" && pct < 100) {
+            taskStatusInput.value = "inprogress";
+        }
+    } else {
+        taskProgressInput.disabled = false;
+        taskProgressInput.style.opacity = "1";
+        taskProgressInput.style.cursor = "pointer";
+    }
+}
+
 // --- Modal Subtasks Add/Remove list UI ---
 function renderModalSubtasks() {
     modalSubtaskList.innerHTML = "";
@@ -1918,6 +2014,7 @@ function renderModalSubtasks() {
         modalSubtaskList.appendChild(li);
     });
     lucide.createIcons();
+    syncModalProgressWithSubtasks();
 }
 
 function handleAddSubtask() {
@@ -1935,7 +2032,6 @@ function handleAddSubtask() {
     subtaskNewTitle.focus();
 }
 
-// --- Form submission inside Modal ---
 function handleFormSubmit(e) {
     e.preventDefault();
 
@@ -1949,6 +2045,22 @@ function handleFormSubmit(e) {
     const assignee = taskAssigneeInput.value.trim();
     let status = taskStatusInput.value;
     let progress = parseInt(taskProgressInput.value);
+
+    // Đồng bộ ngược từ status sang subtasks nếu có subtasks để tránh mâu thuẫn dữ liệu
+    if (tempSubtasks.length > 0) {
+        if (status === "completed") {
+            tempSubtasks.forEach(s => s.completed = true);
+            progress = 100;
+        } else if (status === "todo") {
+            tempSubtasks.forEach(s => s.completed = false);
+            progress = 0;
+        } else if (status === "inprogress" && tempSubtasks.every(s => s.completed)) {
+            // Nếu chuyển thành inprogress mà tất cả subtasks đang completed, ta uncheck việc phụ cuối cùng
+            tempSubtasks[tempSubtasks.length - 1].completed = false;
+            const comp = tempSubtasks.filter(s => s.completed).length;
+            progress = Math.round((comp / tempSubtasks.length) * 100);
+        }
+    }
 
     // Double check status and progress sync
     if (progress === 100) {

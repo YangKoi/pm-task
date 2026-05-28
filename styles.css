@@ -1735,6 +1735,28 @@ button {
     height: 12px;
 }
 
+.card-subtask-checkbox {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid var(--color-text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+.card-subtask-checkbox:hover {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-muted);
+}
+.card-subtask-checkbox.checked {
+    background-color: var(--color-completed);
+    border-color: var(--color-completed);
+    color: white !important;
+}
+
 .task-card-progress {
     display: flex;
     flex-direction: column;
