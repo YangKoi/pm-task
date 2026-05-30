@@ -152,6 +152,9 @@ const modalTitle = document.getElementById("modal-title");
 const taskIdInput = document.getElementById("task-id");
 const taskTitleInput = document.getElementById("task-title-input");
 const taskDescInput = document.getElementById("task-desc-input");
+const taskStartDateInput = document.getElementById("task-start-date-input");
+const taskStartHourInput = document.getElementById("task-start-hour-input");
+const taskStartMinuteInput = document.getElementById("task-start-minute-input");
 const taskDateInput = document.getElementById("task-date-input");
 const taskHourInput = document.getElementById("task-hour-input");
 const taskMinuteInput = document.getElementById("task-minute-input");
@@ -224,7 +227,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Khởi tạo danh sách các ô chọn giờ và phút định dạng 24h
 function initTimeDropdowns() {
-    if (!taskHourInput || !taskMinuteInput) return;
+    if (!taskHourInput || !taskMinuteInput || !taskStartHourInput || !taskStartMinuteInput) return;
     
     // Render 24 Giờ (00 -> 23)
     let hourHTML = "";
@@ -233,6 +236,7 @@ function initTimeDropdowns() {
         hourHTML += `<option value="${hStr}">${hStr}</option>`;
     }
     taskHourInput.innerHTML = hourHTML;
+    taskStartHourInput.innerHTML = hourHTML;
     
     // Render 60 Phút (00 -> 59)
     let minuteHTML = "";
@@ -241,6 +245,7 @@ function initTimeDropdowns() {
         minuteHTML += `<option value="${mStr}">${mStr}</option>`;
     }
     taskMinuteInput.innerHTML = minuteHTML;
+    taskStartMinuteInput.innerHTML = minuteHTML;
 }
 
 // --- Theme Handling ---
@@ -1353,10 +1358,22 @@ function renderCalendar() {
         const tasksContainer = document.createElement("div");
         tasksContainer.className = "calendar-day-tasks";
         
-        // Find tasks due on this date
+        // Find tasks active on this date (multi-day event support)
         const dayTasks = calendarFilteredTasks.filter(t => {
-            const taskDateStr = t.dueDate ? t.dueDate.split('T')[0] : "";
-            return taskDateStr === cellDateStr;
+            const taskStartStr = t.startDate ? t.startDate.split('T')[0] : (t.dueDate ? t.dueDate.split('T')[0] : "");
+            const taskEndStr = t.dueDate ? t.dueDate.split('T')[0] : "";
+            if (!taskEndStr) return false;
+            return cellDateStr >= taskStartStr && cellDateStr <= taskEndStr;
+        });
+        
+        // Sắp xếp dayTasks cố định theo startDate và id để thẳng hàng dải màu nối liền
+        dayTasks.sort((a, b) => {
+            const startA = a.startDate || a.dueDate;
+            const startB = b.startDate || b.dueDate;
+            if (startA !== startB) {
+                return startA.localeCompare(startB);
+            }
+            return a.id.localeCompare(b.id);
         });
         
         dayTasks.forEach(task => {
@@ -1365,8 +1382,28 @@ function renderCalendar() {
             const locationClass = task.workLocation === "site" ? "loc-site" : "loc-office";
             const completedClass = isCompleted ? "completed" : "";
             
-            badge.className = `calendar-task-badge ${locationClass} ${completedClass}`;
-            badge.title = `${task.title} (${task.workLocation === 'site' ? 'Tại site' : 'Văn phòng'})`;
+            // Xác định class dải màu nối liền
+            let spanClass = "";
+            const taskStartStr = task.startDate ? task.startDate.split('T')[0] : (task.dueDate ? task.dueDate.split('T')[0] : "");
+            const taskEndStr = task.dueDate ? task.dueDate.split('T')[0] : "";
+            
+            if (taskStartStr && taskEndStr && taskStartStr < taskEndStr) {
+                if (cellDateStr === taskStartStr) {
+                    spanClass = "event-span-start";
+                } else if (cellDateStr === taskEndStr) {
+                    spanClass = "event-span-end";
+                } else if (cellDateStr > taskStartStr && cellDateStr < taskEndStr) {
+                    spanClass = "event-span-middle";
+                }
+            }
+            
+            badge.className = `calendar-task-badge ${locationClass} ${completedClass} ${spanClass}`;
+            badge.dataset.taskId = task.id;
+            
+            // Thiết lập title hiển thị khoảng thời gian chi tiết
+            const startTimeStr = task.startDate ? formatDate(task.startDate) : "";
+            const endTimeStr = formatDate(task.dueDate);
+            badge.title = `${task.title}\n📍 Địa điểm: ${task.workLocation === 'site' ? 'Tại site' : 'Văn phòng'}\n📅 ${startTimeStr ? 'Bắt đầu: ' + startTimeStr + '\n' : ''}⌛ Hạn kết thúc: ${endTimeStr}`;
             
             const icon = task.workLocation === "site" ? "🚧" : "🏢";
             
@@ -1381,14 +1418,26 @@ function renderCalendar() {
             }
             
             badge.innerHTML = `
-                <div style="display: flex; flex-direction: column; width: 100%;">
-                    <div style="display: flex; align-items: flex-start; gap: 0.35rem;">
+                <div style="display: flex; flex-direction: column; width: 100%; overflow: hidden;">
+                    <div style="display: flex; align-items: flex-start; gap: 0.35rem; white-space: nowrap;">
                         <span>${icon}</span>
-                        <span style="font-weight: 600;">${escapeHTML(task.title)}</span>
+                        <span style="font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${escapeHTML(task.title)}</span>
                     </div>
                     ${assigneeHTML}
                 </div>
             `;
+            
+            // Hover đồng bộ mượt mà cho các phần của cùng một task trải dài
+            badge.addEventListener("mouseenter", () => {
+                document.querySelectorAll(`.calendar-task-badge[data-task-id="${task.id}"]`).forEach(b => {
+                    b.classList.add("hovered");
+                });
+            });
+            badge.addEventListener("mouseleave", () => {
+                document.querySelectorAll(`.calendar-task-badge[data-task-id="${task.id}"]`).forEach(b => {
+                    b.classList.remove("hovered");
+                });
+            });
             
             badge.addEventListener("click", (e) => {
                 e.stopPropagation();
@@ -1403,6 +1452,8 @@ function renderCalendar() {
         // Double-click to create task pre-filled with date
         cell.addEventListener("dblclick", () => {
             openModal();
+            // Đặt ngày bắt đầu mặc định là ngày double-click
+            taskStartDateInput.value = cellDateStr;
             taskDateInput.value = cellDateStr;
         });
         
@@ -1561,11 +1612,18 @@ function createTaskCard(task) {
         </div>
         <div class="task-card-footer">
             <div class="task-card-dates">
+                ${task.startDate ? `
+                <div class="task-start-date" title="Thời gian bắt đầu" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.725rem; color: var(--color-text-muted); opacity: 0.85; margin-bottom: 2px;">
+                    <i data-lucide="play-circle" style="width: 12px; height: 12px;"></i>
+                    <span>Bắt đầu: ${formatDate(task.startDate)}</span>
+                </div>
+                ` : `
                 <div class="task-created-date" title="Ngày tạo công việc">
                     <i data-lucide="plus-circle"></i>
                     <span>Tạo: ${formatTimestamp(task.createdAt)}</span>
                 </div>
-                <div class="task-due-date ${isOverdue ? "is-overdue" : ""}" title="Ngày hạn chót">
+                `}
+                <div class="task-due-date ${isOverdue ? "is-overdue" : ""}" title="Thời gian kết thúc (Hạn chót)">
                     <i data-lucide="calendar"></i>
                     <span>Hạn: ${formatDate(task.dueDate)}</span>
                 </div>
@@ -1689,8 +1747,17 @@ function renderListView(filteredTasks) {
                 </div>
             </td>
             <td>
-                <div class="task-due-date ${isOverdue ? "is-overdue" : ""}">
-                    <span>${formatDate(task.dueDate)}</span>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    ${task.startDate ? `
+                    <div class="task-start-date" style="font-size: 0.725rem; color: var(--color-text-muted); display: flex; align-items: center; gap: 4px; opacity: 0.85;">
+                        <i data-lucide="play-circle" style="width: 10px; height: 10px;"></i>
+                        <span>${formatDate(task.startDate)}</span>
+                    </div>
+                    ` : ""}
+                    <div class="task-due-date ${isOverdue ? "is-overdue" : ""}" style="display: flex; align-items: center; gap: 4px;">
+                        <i data-lucide="calendar" style="width: 10px; height: 10px;"></i>
+                        <span>${formatDate(task.dueDate)}</span>
+                    </div>
                 </div>
             </td>
             <td>
@@ -1877,9 +1944,12 @@ function openModal(editingTaskId = null) {
     taskModal.classList.add("active");
     tempSubtasks = [];
 
-    // Set today and 17:00 as default due date-time
+    // Set today and 08:00 as default start date-time, 17:00 as default due date-time
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    taskStartDateInput.value = todayStr;
+    taskStartHourInput.value = "08";
+    taskStartMinuteInput.value = "00";
     taskDateInput.value = todayStr;
     taskHourInput.value = "17";
     taskMinuteInput.value = "00";
@@ -1892,7 +1962,31 @@ function openModal(editingTaskId = null) {
             taskTitleInput.value = task.title;
             taskDescInput.value = task.desc || "";
             
-            // Tương thích ngược: tách ngày và giờ
+            // Tách ngày và giờ bắt đầu (tương thích ngược)
+            let formStartDate = task.startDate;
+            if (!formStartDate) {
+                if (task.dueDate) {
+                    const datePart = task.dueDate.split('T')[0];
+                    formStartDate = `${datePart}T08:00`;
+                } else {
+                    formStartDate = `${todayStr}T08:00`;
+                }
+            }
+            if (formStartDate) {
+                if (formStartDate.includes('T')) {
+                    const [datePart, timePart] = formStartDate.split('T');
+                    taskStartDateInput.value = datePart;
+                    const [hour, minute] = timePart.split(':');
+                    taskStartHourInput.value = hour;
+                    taskStartMinuteInput.value = minute.substring(0, 2);
+                } else {
+                    taskStartDateInput.value = formStartDate;
+                    taskStartHourInput.value = "08";
+                    taskStartMinuteInput.value = "00";
+                }
+            }
+
+            // Tương thích ngược: tách ngày và giờ hạn chót
             let formDueDate = task.dueDate;
             if (formDueDate) {
                 if (formDueDate.includes('T')) {
@@ -2038,6 +2132,7 @@ function handleFormSubmit(e) {
     const id = taskIdInput.value;
     const title = taskTitleInput.value.trim();
     const desc = taskDescInput.value.trim();
+    const startDate = `${taskStartDateInput.value}T${taskStartHourInput.value}:${taskStartMinuteInput.value}`;
     const dueDate = `${taskDateInput.value}T${taskHourInput.value}:${taskMinuteInput.value}`;
     const category = taskCategoryInput.value;
     const priority = taskForm.querySelector('input[name="priority"]:checked').value;
@@ -2045,6 +2140,12 @@ function handleFormSubmit(e) {
     const assignee = taskAssigneeInput.value.trim();
     let status = taskStatusInput.value;
     let progress = parseInt(taskProgressInput.value);
+
+    // Kiểm tra ràng buộc logic thời gian
+    if (new Date(startDate) > new Date(dueDate)) {
+        showToast("Thời gian kết thúc không thể trước thời gian bắt đầu!", "warning");
+        return;
+    }
 
     // Đồng bộ ngược từ status sang subtasks nếu có subtasks để tránh mâu thuẫn dữ liệu
     if (tempSubtasks.length > 0) {
@@ -2079,6 +2180,7 @@ function handleFormSubmit(e) {
             
             task.title = title;
             task.desc = desc;
+            task.startDate = startDate;
             task.dueDate = dueDate;
             task.category = category;
             task.priority = priority;
@@ -2102,6 +2204,7 @@ function handleFormSubmit(e) {
             id: `task-${Date.now()}`,
             title: title,
             desc: desc,
+            startDate: startDate,
             dueDate: dueDate,
             category: category,
             priority: priority,

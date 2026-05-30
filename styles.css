@@ -2651,13 +2651,42 @@ input[type="range"]::-moz-range-thumb:hover {
     align-items: flex-start;
     gap: 0.35rem;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: all var(--transition-fast), transform var(--transition-fast), margin var(--transition-fast), padding var(--transition-fast);
     border-left: 3px solid transparent;
     line-height: 1.35;
+    position: relative;
 }
-.calendar-task-badge:hover {
-    transform: translateX(2px);
-    filter: brightness(1.15);
+.calendar-task-badge:hover, .calendar-task-badge.hovered {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 4px 12px var(--color-primary-glow) !important;
+    filter: brightness(1.15) !important;
+    z-index: 10 !important;
+}
+
+/* Event Spanning continuous visually premium bars */
+.calendar-task-badge.event-span-start {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    margin-right: -0.65rem !important; /* Lấp đầy lề phải để chạm sát ô kề bên */
+    padding-right: 0.85rem !important;
+    z-index: 2;
+}
+.calendar-task-badge.event-span-middle {
+    border-radius: 0 !important;
+    border-left-width: 0 !important; /* Ẩn border-left chỉ báo màu ở phần giữa để liền mạch */
+    margin-left: -0.65rem !important; /* Lấp đầy cả 2 lề để nối liền */
+    margin-right: -0.65rem !important;
+    padding-left: 0.65rem !important;
+    padding-right: 0.65rem !important;
+    z-index: 1;
+}
+.calendar-task-badge.event-span-end {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-left-width: 0 !important; /* Ẩn border-left chỉ báo màu ở phần cuối */
+    margin-left: -0.65rem !important; /* Lấp đầy lề trái để chạm sát ô trước đó */
+    padding-left: 0.85rem !important;
+    z-index: 2;
 }
 
 .calendar-task-badge.loc-office {
