@@ -2866,6 +2866,7 @@ input[type="range"]::-moz-range-thumb:hover {
         padding: 0.35rem 0.75rem;
         font-size: 0.75rem;
     }
+}
 
 /* Time picker custom select rules */
 .datetime-picker-row select {
@@ -2885,5 +2886,23 @@ select option {
 [data-theme="light"] select option {
     background-color: #ffffff; /* Nền trắng sáng ở Light Mode */
     color: #0f172a; /* Chữ tối sẫm rõ ràng 100% */
+}
+
+/* Khử tràn mép ngoài cùng của Lịch biểu ở cột đầu tiên (Thứ Hai) và cột cuối cùng (Chủ Nhật) */
+.calendar-day-cell:nth-child(7n+1) .calendar-task-badge.event-span-middle,
+.calendar-day-cell:nth-child(7n+1) .calendar-task-badge.event-span-end {
+    margin-left: 0 !important;
+    padding-left: 0.55rem !important;
+    border-top-left-radius: 6px !important;
+    border-bottom-left-radius: 6px !important;
+    border-left-width: 3px !important; /* Hiển thị lại thanh dọc chỉ báo màu */
+}
+
+.calendar-day-cell:nth-child(7n) .calendar-task-badge.event-span-start,
+.calendar-day-cell:nth-child(7n) .calendar-task-badge.event-span-middle {
+    margin-right: 0 !important;
+    padding-right: 0.55rem !important;
+    border-top-right-radius: 6px !important;
+    border-bottom-right-radius: 6px !important;
 }
 

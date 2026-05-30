@@ -1418,10 +1418,10 @@ function renderCalendar() {
             }
             
             badge.innerHTML = `
-                <div style="display: flex; flex-direction: column; width: 100%; overflow: hidden;">
-                    <div style="display: flex; align-items: flex-start; gap: 0.35rem; white-space: nowrap;">
+                <div style="display: flex; flex-direction: column; width: 100%;">
+                    <div style="display: flex; align-items: flex-start; gap: 0.35rem; flex-wrap: wrap;">
                         <span>${icon}</span>
-                        <span style="font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${escapeHTML(task.title)}</span>
+                        <span style="font-weight: 600; word-break: break-word; white-space: normal;">${escapeHTML(task.title)}</span>
                     </div>
                     ${assigneeHTML}
                 </div>
