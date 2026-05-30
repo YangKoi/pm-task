@@ -409,24 +409,23 @@
                     <textarea id="task-desc-input" rows="3" placeholder="Mô tả các yêu cầu, ghi chú hoặc nội dung công việc..."></textarea>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Thời gian bắt đầu <span class="required">*</span></label>
-                        <div class="datetime-picker-row" style="display: flex; gap: 0.35rem; align-items: center; width: 100%;">
-                            <input type="date" id="task-start-date-input" required style="flex: 2; min-width: 0;">
-                            <select id="task-start-hour-input" required style="flex: 1; text-align: center; cursor: pointer; min-width: 0; padding: 0.5rem 0.2rem;"></select>
-                            <span style="font-weight: bold; color: var(--color-text-muted);">:</span>
-                            <select id="task-start-minute-input" required style="flex: 1; text-align: center; cursor: pointer; min-width: 0; padding: 0.5rem 0.2rem;"></select>
-                        </div>
+                <div class="form-group">
+                    <label>Thời gian bắt đầu <span class="required">*</span></label>
+                    <div class="datetime-picker-row" style="display: flex; gap: 0.5rem; align-items: center; width: 100%;">
+                        <input type="date" id="task-start-date-input" required style="flex: 2;">
+                        <select id="task-start-hour-input" required style="flex: 1; text-align: center; cursor: pointer;"></select>
+                        <span style="font-weight: bold; color: var(--color-text-muted);">:</span>
+                        <select id="task-start-minute-input" required style="flex: 1; text-align: center; cursor: pointer;"></select>
                     </div>
-                    <div class="form-group">
-                        <label>Hạn chót (Kết thúc) <span class="required">*</span></label>
-                        <div class="datetime-picker-row" style="display: flex; gap: 0.35rem; align-items: center; width: 100%;">
-                            <input type="date" id="task-date-input" required style="flex: 2; min-width: 0;">
-                            <select id="task-hour-input" required style="flex: 1; text-align: center; cursor: pointer; min-width: 0; padding: 0.5rem 0.2rem;"></select>
-                            <span style="font-weight: bold; color: var(--color-text-muted);">:</span>
-                            <select id="task-minute-input" required style="flex: 1; text-align: center; cursor: pointer; min-width: 0; padding: 0.5rem 0.2rem;"></select>
-                        </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Hạn chót (Kết thúc) <span class="required">*</span></label>
+                    <div class="datetime-picker-row" style="display: flex; gap: 0.5rem; align-items: center; width: 100%;">
+                        <input type="date" id="task-date-input" required style="flex: 2;">
+                        <select id="task-hour-input" required style="flex: 1; text-align: center; cursor: pointer;"></select>
+                        <span style="font-weight: bold; color: var(--color-text-muted);">:</span>
+                        <select id="task-minute-input" required style="flex: 1; text-align: center; cursor: pointer;"></select>
                     </div>
                 </div>
 
