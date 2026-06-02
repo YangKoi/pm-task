@@ -1039,33 +1039,80 @@ button {
     background-color: var(--bg-card);
     border: 1px solid var(--bg-card-border);
     border-radius: var(--border-radius-lg);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 .list-view-table {
     width: 100%;
+    min-width: 1240px;
     border-collapse: collapse;
     text-align: left;
     font-size: 0.875rem;
+    table-layout: fixed;
+}
+.list-view-table th,
+.list-view-table td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--bg-card-border);
 }
 .list-view-table th {
     background-color: rgba(0, 0, 0, 0.08);
-    padding: 1rem 1.25rem;
     font-weight: 600;
     color: var(--color-text-muted);
-    border-bottom: 1px solid var(--bg-card-border);
 }
 [data-theme="light"] .list-view-table th {
     background-color: rgba(0, 0, 0, 0.02);
-}
-.list-view-table td {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--bg-card-border);
 }
 .list-view-table tr:last-child td {
     border-bottom: none;
 }
 .list-view-table tr:hover td {
     background-color: var(--bg-card-hover);
+}
+
+/* Kích thước cột cố định cho bảng */
+.list-view-table th:nth-child(1),
+.list-view-table td:nth-child(1) {
+    width: 70px;
+    text-align: center;
+}
+.list-view-table th:nth-child(2),
+.list-view-table td:nth-child(2) {
+    width: 300px;
+}
+.list-view-table th:nth-child(3),
+.list-view-table td:nth-child(3) {
+    width: 110px;
+}
+.list-view-table th:nth-child(4),
+.list-view-table td:nth-child(4) {
+    width: 130px;
+}
+.list-view-table th:nth-child(5),
+.list-view-table td:nth-child(5) {
+    width: 120px;
+}
+.list-view-table th:nth-child(6),
+.list-view-table td:nth-child(6) {
+    width: 140px;
+}
+.list-view-table th:nth-child(7),
+.list-view-table td:nth-child(7) {
+    width: 110px;
+}
+.list-view-table th:nth-child(8),
+.list-view-table td:nth-child(8) {
+    width: 130px;
+}
+.list-view-table th:nth-child(9),
+.list-view-table td:nth-child(9) {
+    width: 130px;
+}
+.list-view-table th:nth-child(10),
+.list-view-table td:nth-child(10) {
+    width: 100px;
+    text-align: right;
 }
 
 /* Status badge list view */
@@ -1085,15 +1132,18 @@ button {
 
 .list-task-title {
     font-weight: 600;
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.25rem;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 .list-task-desc {
     font-size: 0.775rem;
     color: var(--color-text-muted);
-    max-width: 320px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    margin-top: 0.25rem;
 }
 .list-progress-bar-container {
     display: flex;
