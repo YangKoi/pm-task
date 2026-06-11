@@ -216,10 +216,25 @@ const periodBtns = document.querySelectorAll(".period-btn");
 const dateFilterInput = document.getElementById("date-filter");
 const clearDateFilterBtn = document.getElementById("clear-date-filter");
 
+// Assignee Manager Elements
+const assigneeManagerModal = document.getElementById("assignee-manager-modal");
+const closeAssigneeModalBtn = document.getElementById("close-assignee-modal-btn");
+const cancelAssigneeModalBtn = document.getElementById("cancel-assignee-modal-btn");
+const manageAssigneesBtn = document.getElementById("manage-assignees-btn");
+const formManageAssigneesBtn = document.getElementById("form-manage-assignees-btn");
+const assigneeSearchInput = document.getElementById("assignee-search-input");
+const assigneeTableBody = document.getElementById("assignee-table-body");
+const newAssigneeName = document.getElementById("new-assignee-name");
+const newAssigneeColorSelector = document.getElementById("new-assignee-color-selector");
+const addNewAssigneeBtn = document.getElementById("add-new-assignee-btn");
+const assigneeDatalist = document.getElementById("assignee-list");
+
 // --- Initialization ---
 document.addEventListener("DOMContentLoaded", () => {
     loadTheme();
+    loadAssigneeColors();
     loadTasks();
+    rebuildAssigneeColorsFromTasks(); // Đồng bộ màu sắc tự động từ công việc
     loadGDriveConfig();
     setGreeting();
     initTimeDropdowns(); // Khởi tạo giờ/phút dạng 24h
@@ -295,6 +310,310 @@ function setGreeting() {
         text = "Chào buổi tối! 🌙";
     }
     greetingText.textContent = text;
+}
+
+// --- Assignee Colors Storage & Logic ---
+let assigneeColors = {};
+function loadAssigneeColors() {
+    const stored = localStorage.getItem("tgtask_assignee_colors");
+    if (stored) {
+        try {
+            assigneeColors = JSON.parse(stored);
+        } catch (e) {
+            console.error("Lỗi load màu nhân sự:", e);
+            assigneeColors = {};
+        }
+    } else {
+        // Khởi tạo màu mặc định ban đầu cho các mock task và nhân sự thông dụng
+        assigneeColors = {
+            "trần minh quân": "purple",
+            "nguyễn hoàng nam": "blue",
+            "phạm thùy chi": "orange",
+            "lê quang bách": "green",
+            "giang": "orange",
+            "bình": "blue"
+        };
+        saveAssigneeColors();
+    }
+}
+function saveAssigneeColors() {
+    localStorage.setItem("tgtask_assignee_colors", JSON.stringify(assigneeColors));
+}
+function getAssigneeColor(name) {
+    if (!name || name.trim() === "") return "purple";
+    const key = name.trim().toLowerCase();
+    if (assigneeColors[key]) {
+        return assigneeColors[key];
+    }
+    // Fallback: Tạo mã băm ổn định từ tên để chọn 1 màu tương ứng
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+        hash = key.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colors = ["purple", "blue", "orange", "green", "red", "pink"];
+    const index = Math.abs(hash) % colors.length;
+    const autoColor = colors[index];
+    assigneeColors[key] = autoColor;
+    saveAssigneeColors();
+    return autoColor;
+}
+
+// --- Assignee Manager Modal Controls & Functions ---
+function populateAssigneeDatalist() {
+    if (!assigneeDatalist) return;
+    assigneeDatalist.innerHTML = "";
+    Object.keys(assigneeColors).forEach(key => {
+        let displayName = key;
+        const matchingTask = tasks.find(t => t.assignee && t.assignee.trim().toLowerCase() === key);
+        if (matchingTask) {
+            displayName = matchingTask.assignee.trim();
+        } else {
+            displayName = key.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        }
+        const option = document.createElement("option");
+        option.value = displayName;
+        assigneeDatalist.appendChild(option);
+    });
+}
+
+function openAssigneeModal() {
+    if (assigneeManagerModal) {
+        assigneeManagerModal.style.display = "flex";
+        if (newAssigneeName) newAssigneeName.value = "";
+        if (assigneeSearchInput) assigneeSearchInput.value = "";
+        renderAssigneeTable();
+    }
+}
+
+function closeAssigneeModal() {
+    if (assigneeManagerModal) {
+        assigneeManagerModal.style.display = "none";
+    }
+}
+
+function renderAssigneeTable(filterText = "") {
+    if (!assigneeTableBody) return;
+    assigneeTableBody.innerHTML = "";
+    
+    const term = filterText.trim().toLowerCase();
+    const keys = Object.keys(assigneeColors);
+    const filteredKeys = keys.filter(k => k.includes(term));
+    
+    if (filteredKeys.length === 0) {
+        assigneeTableBody.innerHTML = `
+            <tr>
+                <td colspan="3" style="text-align: center; color: var(--color-text-muted); padding: 1.5rem;">
+                    Không tìm thấy nhân sự nào.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    filteredKeys.forEach(key => {
+        let originalName = key;
+        const matchingTask = tasks.find(t => t.assignee && t.assignee.trim().toLowerCase() === key);
+        if (matchingTask) {
+            originalName = matchingTask.assignee.trim();
+        } else {
+            originalName = key.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        }
+        
+        const currentColor = assigneeColors[key] || "purple";
+        
+        const tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid var(--bg-card-border)";
+        
+        let colorRadioHTML = "";
+        const colors = ["purple", "blue", "orange", "green", "red", "pink"];
+        colors.forEach(c => {
+            const checked = currentColor === c ? "checked" : "";
+            colorRadioHTML += `
+                <label class="color-dot-wrapper" style="cursor: pointer; position: relative;">
+                    <input type="radio" name="rowColor_${key.replace(/\s+/g, '_')}" value="${c}" ${checked} style="display:none;">
+                    <span class="color-dot color-${c}" title="${c}" style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; transition: all 0.2s; display: inline-block; ${currentColor === c ? 'border-color: var(--color-text); transform: scale(1.25);' : ''}"></span>
+                </label>
+            `;
+        });
+        
+        tr.innerHTML = `
+            <td style="padding: 0.5rem 1rem;">
+                <input type="text" class="assignee-row-name-input" data-original-name="${escapeHTML(originalName)}" value="${escapeHTML(originalName)}">
+            </td>
+            <td style="padding: 0.5rem 1rem; text-align: center;">
+                <div class="assignee-color-selector" style="height: 30px; justify-content: center; gap: 0.35rem; display: flex; align-items: center;">
+                    ${colorRadioHTML}
+                </div>
+            </td>
+            <td style="padding: 0.5rem 1rem; text-align: center;">
+                <button class="delete-assignee-row-btn" data-name="${escapeHTML(originalName)}">
+                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                </button>
+            </td>
+        `;
+        
+        assigneeTableBody.appendChild(tr);
+        
+        const nameInput = tr.querySelector(".assignee-row-name-input");
+        if (nameInput) {
+            const handleRename = () => {
+                const newNameVal = nameInput.value.trim();
+                const originalNameVal = nameInput.dataset.originalName.trim();
+                
+                if (newNameVal === "") {
+                    nameInput.value = originalNameVal;
+                    showToast("Tên nhân viên không được để trống!", "warning");
+                    return;
+                }
+                
+                if (newNameVal.toLowerCase() === originalNameVal.toLowerCase()) {
+                    if (newNameVal !== originalNameVal) {
+                        tasks.forEach(t => {
+                            if (t.assignee && t.assignee.trim().toLowerCase() === originalNameVal.toLowerCase()) {
+                                t.assignee = newNameVal;
+                            }
+                        });
+                        saveTasks();
+                        renderAll();
+                        renderAssigneeTable(assigneeSearchInput ? assigneeSearchInput.value : "");
+                        populateAssigneeDatalist();
+                        showToast(`Đã đổi viết hoa tên: ${newNameVal}`, "success");
+                    }
+                    return;
+                }
+                
+                if (assigneeColors[newNameVal.toLowerCase()]) {
+                    nameInput.value = originalNameVal;
+                    showToast(`Nhân sự "${newNameVal}" đã tồn tại trong hệ thống!`, "warning");
+                    return;
+                }
+                
+                const oldKey = originalNameVal.toLowerCase();
+                const newKey = newNameVal.toLowerCase();
+                const color = assigneeColors[oldKey] || "purple";
+                
+                delete assigneeColors[oldKey];
+                assigneeColors[newKey] = color;
+                saveAssigneeColors();
+                
+                tasks.forEach(t => {
+                    if (t.assignee && t.assignee.trim().toLowerCase() === oldKey) {
+                        t.assignee = newNameVal;
+                        t.assigneeColor = color;
+                    }
+                });
+                
+                saveTasks();
+                renderAll();
+                renderAssigneeTable(assigneeSearchInput ? assigneeSearchInput.value : "");
+                populateAssigneeDatalist();
+                showToast(`Đã đổi tên từ "${originalNameVal}" thành "${newNameVal}" thành công!`, "success");
+            };
+            
+            nameInput.addEventListener("keydown", (evt) => {
+                if (evt.key === "Enter") nameInput.blur();
+            });
+            nameInput.addEventListener("change", handleRename);
+        }
+        
+        const dots = tr.querySelectorAll(".color-dot-wrapper");
+        dots.forEach(dot => {
+            const radio = dot.querySelector("input[type='radio']");
+            const span = dot.querySelector(".color-dot");
+            span.addEventListener("click", () => {
+                const newCol = radio.value;
+                const targetNameKey = key;
+                
+                assigneeColors[targetNameKey] = newCol;
+                saveAssigneeColors();
+                
+                tasks.forEach(t => {
+                    if (t.assignee && t.assignee.trim().toLowerCase() === targetNameKey) {
+                        t.assigneeColor = newCol;
+                    }
+                });
+                
+                saveTasks();
+                renderAll();
+                renderAssigneeTable(assigneeSearchInput ? assigneeSearchInput.value : "");
+                populateAssigneeDatalist();
+                showToast(`Đã đổi màu của "${originalName}" sang ${newCol}`, "success");
+            });
+        });
+        
+        const deleteBtn = tr.querySelector(".delete-assignee-row-btn");
+        if (deleteBtn) {
+            deleteBtn.addEventListener("click", () => {
+                const nameToDelete = deleteBtn.dataset.name;
+                const keyToDelete = nameToDelete.trim().toLowerCase();
+                
+                if (confirm(`Bạn có chắc chắn muốn xóa nhân viên "${nameToDelete}" khỏi hệ thống? Tất cả công việc của người này sẽ chuyển về "Chưa phân công".`)) {
+                    delete assigneeColors[keyToDelete];
+                    saveAssigneeColors();
+                    
+                    tasks.forEach(t => {
+                        if (t.assignee && t.assignee.trim().toLowerCase() === keyToDelete) {
+                            t.assignee = "";
+                            t.assigneeColor = "purple";
+                        }
+                    });
+                    
+                    saveTasks();
+                    renderAll();
+                    renderAssigneeTable(assigneeSearchInput ? assigneeSearchInput.value : "");
+                    populateAssigneeDatalist();
+                    showToast(`Đã xóa nhân sự "${nameToDelete}"`, "success");
+                }
+            });
+        }
+    });
+    
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+function handleAddNewAssignee() {
+    if (!newAssigneeName) return;
+    const nameVal = newAssigneeName.value.trim();
+    if (nameVal === "") {
+        showToast("Tên nhân viên không được để trống!", "warning");
+        return;
+    }
+    
+    const key = nameVal.toLowerCase();
+    if (assigneeColors[key]) {
+        showToast(`Nhân sự "${nameVal}" đã tồn tại trong hệ thống!`, "warning");
+        return;
+    }
+    
+    const checkedRadio = newAssigneeColorSelector.querySelector("input[name='newAssigneeColor']:checked");
+    const colorVal = checkedRadio ? checkedRadio.value : "purple";
+    
+    assigneeColors[key] = colorVal;
+    saveAssigneeColors();
+    
+    newAssigneeName.value = "";
+    const purpleRadio = newAssigneeColorSelector.querySelector("input[name='newAssigneeColor'][value='purple']");
+    if (purpleRadio) purpleRadio.checked = true;
+    
+    renderAssigneeTable(assigneeSearchInput ? assigneeSearchInput.value : "");
+    populateAssigneeDatalist();
+    showToast(`Đã thêm nhân sự "${nameVal}" thành công!`, "success");
+}
+
+function rebuildAssigneeColorsFromTasks() {
+    tasks.forEach(t => {
+        if (t.assignee && t.assignee.trim() !== "") {
+            const key = t.assignee.trim().toLowerCase();
+            const color = t.assigneeColor || "purple";
+            if (!assigneeColors[key]) {
+                assigneeColors[key] = color;
+            }
+        }
+    });
+    saveAssigneeColors();
+    populateAssigneeDatalist();
 }
 
 // --- Tasks Local Storage ---
@@ -952,6 +1271,53 @@ function setupEventListeners() {
             taskStatusInput.value = "inprogress";
         }
     });
+
+    // Auto-select assignee color when typing name
+    taskAssigneeInput.addEventListener("input", (e) => {
+        const name = e.target.value.trim();
+        if (name !== "") {
+            const color = getAssigneeColor(name);
+            const colorRadio = taskForm.querySelector(`input[name="assigneeColor"][value="${color}"]`);
+            if (colorRadio) {
+                colorRadio.checked = true;
+            }
+        } else {
+            const colorRadio = taskForm.querySelector(`input[name="assigneeColor"][value="purple"]`);
+            if (colorRadio) {
+                colorRadio.checked = true;
+            }
+        }
+    });
+
+    // Assignee Manager Events
+    if (manageAssigneesBtn) {
+        manageAssigneesBtn.addEventListener("click", openAssigneeModal);
+    }
+    if (formManageAssigneesBtn) {
+        formManageAssigneesBtn.addEventListener("click", openAssigneeModal);
+    }
+    if (closeAssigneeModalBtn) {
+        closeAssigneeModalBtn.addEventListener("click", closeAssigneeModal);
+    }
+    if (cancelAssigneeModalBtn) {
+        cancelAssigneeModalBtn.addEventListener("click", closeAssigneeModal);
+    }
+    if (assigneeSearchInput) {
+        assigneeSearchInput.addEventListener("input", (e) => {
+            renderAssigneeTable(e.target.value);
+        });
+    }
+    if (addNewAssigneeBtn) {
+        addNewAssigneeBtn.addEventListener("click", handleAddNewAssignee);
+    }
+    if (newAssigneeName) {
+        newAssigneeName.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddNewAssignee();
+            }
+        });
+    }
 
     // Export / Import
     exportBtn.addEventListener("click", exportData);
@@ -2249,6 +2615,21 @@ function handleFormSubmit(e) {
 
     if (title === "") return;
 
+    // Đồng bộ màu sắc nhân viên sang bản đồ màu sắc toàn cục và các công việc khác
+    if (assignee && assignee.trim() !== "") {
+        const key = assignee.trim().toLowerCase();
+        assigneeColors[key] = assigneeColor;
+        saveAssigneeColors();
+        
+        tasks.forEach(t => {
+            if (t.assignee && t.assignee.trim().toLowerCase() === key) {
+                t.assigneeColor = assigneeColor;
+            }
+        });
+        
+        populateAssigneeDatalist();
+    }
+
     if (id) {
         // Editing existing task
         const task = tasks.find(t => t.id === id);
@@ -2342,6 +2723,7 @@ function importData(e) {
                     if (confirm("Bạn có muốn ghi đè toàn bộ công việc hiện tại bằng dữ liệu nhập khẩu không?")) {
                         tasks = imported;
                         saveTasks();
+                        rebuildAssigneeColorsFromTasks();
                         renderSidebarCategories();
                         renderAll();
                         showToast("Nhập dữ liệu sao lưu thành công!", "success");

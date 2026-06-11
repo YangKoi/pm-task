@@ -3139,3 +3139,67 @@ select option {
 .calendar-task-assignee.assignee-pink { color: #f472b6 !important; }
 [data-theme="light"] .calendar-task-assignee.assignee-pink { color: #db2777 !important; }
 
+/* Assignee Manager Modal Table Styles */
+.assignee-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+}
+.assignee-table th, .assignee-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--bg-card-border);
+    vertical-align: middle;
+}
+.assignee-row-name-input {
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+    color: var(--color-text);
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    width: 100%;
+    transition: all var(--transition-fast);
+}
+.assignee-row-name-input:focus {
+    border-color: var(--color-primary-light);
+    background: rgba(255, 255, 255, 0.05);
+    outline: none;
+}
+[data-theme="light"] .assignee-row-name-input {
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .assignee-row-name-input:focus {
+    background: rgba(0, 0, 0, 0.02);
+}
+.delete-assignee-row-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-overdue);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+.delete-assignee-row-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    transform: scale(1.1);
+}
+.assignee-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+.assignee-list-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+.assignee-list-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+[data-theme="light"] .assignee-list-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+}
+
