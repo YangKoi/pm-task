@@ -2504,6 +2504,64 @@ input[type="range"]::-moz-range-thumb:hover {
     box-shadow: 0 0 12px var(--color-loc-site-glow);
 }
 
+/* 3. Weekend Toggle Button */
+.weekend-toggle-btn {
+    border: 1px solid var(--bg-card-border);
+    border-radius: var(--border-radius-md);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+    background-color: rgba(0, 0, 0, 0.15);
+    user-select: none;
+    color: var(--color-text);
+}
+[data-theme="light"] .weekend-toggle-btn {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+.weekend-toggle-btn input[type="checkbox"] {
+    display: none;
+}
+.weekend-toggle-btn .checkbox-custom-ui {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--color-text-muted);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+.weekend-toggle-btn input[type="checkbox"]:checked + .checkbox-custom-ui {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+.weekend-toggle-btn input[type="checkbox"]:checked + .checkbox-custom-ui::after {
+    content: '';
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    position: absolute;
+    top: 2px;
+    left: 5px;
+}
+.weekend-toggle-btn:hover {
+    background-color: var(--bg-card-border-hover);
+    border-color: var(--color-primary-light);
+}
+.weekend-toggle-btn:has(input[type="checkbox"]:checked) {
+    background-color: var(--color-primary-muted);
+    border-color: var(--color-primary);
+}
+
 /* 2. Task Cards Location Tags */
 .task-loc-tag {
     display: inline-flex;

@@ -159,6 +159,7 @@ const taskDateInput = document.getElementById("task-date-input");
 const taskHourInput = document.getElementById("task-hour-input");
 const taskMinuteInput = document.getElementById("task-minute-input");
 const taskCategoryInput = document.getElementById("task-category-input");
+const taskIncludeWeekendsInput = document.getElementById("task-include-weekends-input");
 
 const subtaskNewTitle = document.getElementById("subtask-new-title");
 const subtaskAddBtn = document.getElementById("subtask-add-btn");
@@ -1363,7 +1364,18 @@ function renderCalendar() {
             const taskStartStr = t.startDate ? t.startDate.split('T')[0] : (t.dueDate ? t.dueDate.split('T')[0] : "");
             const taskEndStr = t.dueDate ? t.dueDate.split('T')[0] : "";
             if (!taskEndStr) return false;
-            return cellDateStr >= taskStartStr && cellDateStr <= taskEndStr;
+            
+            const inRange = cellDateStr >= taskStartStr && cellDateStr <= taskEndStr;
+            if (!inRange) return false;
+            
+            // Check weekend exclusion if includeWeekends is false
+            if (t.includeWeekends === false) {
+                const dayOfWeek = new Date(cellDateStr + 'T12:00:00').getDay(); // 0 is Sunday, 6 is Saturday
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    return false;
+                }
+            }
+            return true;
         });
         
         // Sắp xếp dayTasks cố định theo startDate và id để thẳng hàng dải màu nối liền
@@ -1382,18 +1394,38 @@ function renderCalendar() {
             const locationClass = task.workLocation === "site" ? "loc-site" : "loc-office";
             const completedClass = isCompleted ? "completed" : "";
             
-            // Xác định class dải màu nối liền
+            // Xác định class dải màu nối liền bằng cách kiểm tra hiển thị của các ngày kề bên
             let spanClass = "";
             const taskStartStr = task.startDate ? task.startDate.split('T')[0] : (task.dueDate ? task.dueDate.split('T')[0] : "");
             const taskEndStr = task.dueDate ? task.dueDate.split('T')[0] : "";
             
             if (taskStartStr && taskEndStr && taskStartStr < taskEndStr) {
-                if (cellDateStr === taskStartStr) {
-                    spanClass = "event-span-start";
-                } else if (cellDateStr === taskEndStr) {
-                    spanClass = "event-span-end";
-                } else if (cellDateStr > taskStartStr && cellDateStr < taskEndStr) {
+                const rendersOnDate = (dateStr) => {
+                    if (dateStr < taskStartStr || dateStr > taskEndStr) return false;
+                    if (task.includeWeekends === false) {
+                        const dayOfWeek = new Date(dateStr + 'T12:00:00').getDay();
+                        if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+                    }
+                    return true;
+                };
+
+                const getOffsetDateStr = (dateStr, offset) => {
+                    const d = new Date(dateStr + 'T12:00:00');
+                    d.setDate(d.getDate() + offset);
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                };
+
+                const hasPrev = rendersOnDate(getOffsetDateStr(cellDateStr, -1));
+                const hasNext = rendersOnDate(getOffsetDateStr(cellDateStr, 1));
+
+                if (hasPrev && hasNext) {
                     spanClass = "event-span-middle";
+                } else if (hasPrev && !hasNext) {
+                    spanClass = "event-span-end";
+                } else if (!hasPrev && hasNext) {
+                    spanClass = "event-span-start";
+                } else {
+                    spanClass = ""; // Single day segment (no connection)
                 }
             }
             
@@ -2019,6 +2051,11 @@ function openModal(editingTaskId = null) {
             const locRadio = taskForm.querySelector(`input[name="workLocation"][value="${locVal}"]`);
             if (locRadio) locRadio.checked = true;
 
+            // Load includeWeekends checkbox
+            if (taskIncludeWeekendsInput) {
+                taskIncludeWeekendsInput.checked = task.includeWeekends !== false;
+            }
+
             // Load subtasks
             if (task.subtasks) {
                 tempSubtasks = [...task.subtasks];
@@ -2037,6 +2074,10 @@ function openModal(editingTaskId = null) {
         // default location
         const defaultLocRadio = taskForm.querySelector('input[name="workLocation"][value="office"]');
         if (defaultLocRadio) defaultLocRadio.checked = true;
+        // default includeWeekends
+        if (taskIncludeWeekendsInput) {
+            taskIncludeWeekendsInput.checked = true;
+        }
     }
 
     renderModalSubtasks();
@@ -2137,6 +2178,7 @@ function handleFormSubmit(e) {
     const category = taskCategoryInput.value;
     const priority = taskForm.querySelector('input[name="priority"]:checked').value;
     const workLocation = taskForm.querySelector('input[name="workLocation"]:checked').value;
+    const includeWeekends = taskIncludeWeekendsInput ? taskIncludeWeekendsInput.checked : true;
     const assignee = taskAssigneeInput.value.trim();
     let status = taskStatusInput.value;
     let progress = parseInt(taskProgressInput.value);
@@ -2185,6 +2227,7 @@ function handleFormSubmit(e) {
             task.category = category;
             task.priority = priority;
             task.workLocation = workLocation;
+            task.includeWeekends = includeWeekends;
             task.assignee = assignee;
             task.status = status;
             task.progress = progress;
@@ -2209,6 +2252,7 @@ function handleFormSubmit(e) {
             category: category,
             priority: priority,
             workLocation: workLocation,
+            includeWeekends: includeWeekends,
             assignee: assignee,
             status: status,
             progress: progress,
