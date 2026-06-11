@@ -20,7 +20,7 @@
 
     
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="styles.css?v=1.10.0">
+    <link rel="stylesheet" href="styles.css?v=1.11.0">
 </head>
 <body>
     <!-- Canvas for Confetti -->
@@ -468,9 +468,38 @@
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group" style="grid-column: span 2;">
+                    <div class="form-group">
                         <label for="task-assignee-input">Nhân viên thực hiện</label>
                         <input type="text" id="task-assignee-input" placeholder="Nhập tên người thực hiện...">
+                    </div>
+                    <div class="form-group">
+                        <label>Màu đại diện nhân sự</label>
+                        <div class="assignee-color-selector">
+                            <label class="color-dot-wrapper">
+                                <input type="radio" name="assigneeColor" value="purple" checked>
+                                <span class="color-dot color-purple" title="Tím"></span>
+                            </label>
+                            <label class="color-dot-wrapper">
+                                <input type="radio" name="assigneeColor" value="blue">
+                                <span class="color-dot color-blue" title="Xanh dương"></span>
+                            </label>
+                            <label class="color-dot-wrapper">
+                                <input type="radio" name="assigneeColor" value="orange">
+                                <span class="color-dot color-orange" title="Cam"></span>
+                            </label>
+                            <label class="color-dot-wrapper">
+                                <input type="radio" name="assigneeColor" value="green">
+                                <span class="color-dot color-green" title="Xanh lá"></span>
+                            </label>
+                            <label class="color-dot-wrapper">
+                                <input type="radio" name="assigneeColor" value="red">
+                                <span class="color-dot color-red" title="Đỏ"></span>
+                            </label>
+                            <label class="color-dot-wrapper">
+                                <input type="radio" name="assigneeColor" value="pink">
+                                <span class="color-dot color-pink" title="Hồng"></span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -593,6 +622,6 @@
 
 
     <!-- JavaScript logic -->
-    <script src="app.js?v=1.10.0"></script>
+    <script src="app.js?v=1.11.0"></script>
 </body>
 </html>

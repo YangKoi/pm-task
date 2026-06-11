@@ -3014,3 +3014,128 @@ select option {
     border-bottom-right-radius: 6px !important;
 }
 
+/* ==========================================================================
+   Assignee Color Selector & Badges Custom Styling
+   ========================================================================== */
+
+.assignee-color-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 44px;
+}
+.color-dot-wrapper {
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.color-dot-wrapper input[type="radio"] {
+    display: none;
+}
+.color-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    transition: all var(--transition-fast);
+    display: inline-block;
+}
+.color-dot.color-purple { background-color: #8b5cf6; }
+.color-dot.color-blue { background-color: #3b82f6; }
+.color-dot.color-orange { background-color: #f59e0b; }
+.color-dot.color-green { background-color: #10b981; }
+.color-dot.color-red { background-color: #ef4444; }
+.color-dot.color-pink { background-color: #ec4899; }
+
+.color-dot-wrapper input[type="radio"]:checked + .color-dot {
+    border-color: var(--color-text);
+    transform: scale(1.25);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+}
+[data-theme="light"] .color-dot-wrapper input[type="radio"]:checked + .color-dot {
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Assignee Badge Color Variations */
+.task-assignee-badge.assignee-purple {
+    background-color: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+[data-theme="light"] .task-assignee-badge.assignee-purple {
+    background-color: rgba(139, 92, 246, 0.08);
+    color: #7c3aed;
+    border: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+.task-assignee-badge.assignee-blue {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+[data-theme="light"] .task-assignee-badge.assignee-blue {
+    background-color: rgba(59, 130, 246, 0.08);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.task-assignee-badge.assignee-orange {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+[data-theme="light"] .task-assignee-badge.assignee-orange {
+    background-color: rgba(245, 158, 11, 0.08);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.task-assignee-badge.assignee-green {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+[data-theme="light"] .task-assignee-badge.assignee-green {
+    background-color: rgba(16, 185, 129, 0.08);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.task-assignee-badge.assignee-red {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+[data-theme="light"] .task-assignee-badge.assignee-red {
+    background-color: rgba(239, 68, 68, 0.08);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.task-assignee-badge.assignee-pink {
+    background-color: rgba(236, 72, 153, 0.15);
+    color: #f472b6;
+    border: 1px solid rgba(236, 72, 153, 0.3);
+}
+[data-theme="light"] .task-assignee-badge.assignee-pink {
+    background-color: rgba(236, 72, 153, 0.08);
+    color: #db2777;
+    border: 1px solid rgba(236, 72, 153, 0.15);
+}
+
+/* Calendar view assignee text colors */
+.calendar-task-assignee.assignee-purple { color: #a78bfa !important; }
+[data-theme="light"] .calendar-task-assignee.assignee-purple { color: #7c3aed !important; }
+.calendar-task-assignee.assignee-blue { color: #60a5fa !important; }
+[data-theme="light"] .calendar-task-assignee.assignee-blue { color: #2563eb !important; }
+.calendar-task-assignee.assignee-orange { color: #fbbf24 !important; }
+[data-theme="light"] .calendar-task-assignee.assignee-orange { color: #d97706 !important; }
+.calendar-task-assignee.assignee-green { color: #34d399 !important; }
+[data-theme="light"] .calendar-task-assignee.assignee-green { color: #059669 !important; }
+.calendar-task-assignee.assignee-red { color: #f87171 !important; }
+[data-theme="light"] .calendar-task-assignee.assignee-red { color: #dc2626 !important; }
+.calendar-task-assignee.assignee-pink { color: #f472b6 !important; }
+[data-theme="light"] .calendar-task-assignee.assignee-pink { color: #db2777 !important; }
+

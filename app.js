@@ -14,6 +14,7 @@ const DEFAULT_TASKS = [
         priority: "high",
         status: "inprogress",
         assignee: "Trần Minh Quân",
+        assigneeColor: "purple",
         progress: 66,
         subtasks: [
             { id: "sub-1-1", title: "Phác thảo wireframe sơ bộ", completed: true },
@@ -31,6 +32,7 @@ const DEFAULT_TASKS = [
         priority: "medium",
         status: "todo",
         assignee: "Nguyễn Hoàng Nam",
+        assigneeColor: "blue",
         progress: 0,
         subtasks: [
             { id: "sub-2-1", title: "Khởi động nhẹ nhàng 10 phút", completed: false },
@@ -47,6 +49,7 @@ const DEFAULT_TASKS = [
         priority: "low",
         status: "todo",
         assignee: "Phạm Thùy Chi",
+        assigneeColor: "orange",
         progress: 0,
         subtasks: [],
         createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000
@@ -60,6 +63,7 @@ const DEFAULT_TASKS = [
         priority: "high",
         status: "completed",
         assignee: "Lê Quang Bách",
+        assigneeColor: "green",
         progress: 100,
         subtasks: [
             { id: "sub-4-1", title: "Học lý thuyết về Event Loop", completed: true },
@@ -1450,8 +1454,9 @@ function renderCalendar() {
             
             let assigneeHTML = "";
             if (task.assignee && task.assignee.trim() !== "") {
+                const colorClass = task.assigneeColor ? `assignee-${task.assigneeColor}` : "assignee-purple";
                 assigneeHTML = `
-                    <div class="calendar-task-assignee" style="font-size: 0.65rem; opacity: 0.8; margin-top: 4px; display: flex; align-items: center; gap: 4px; font-weight: 500;">
+                    <div class="calendar-task-assignee ${colorClass}" style="font-size: 0.65rem; opacity: 0.8; margin-top: 4px; display: flex; align-items: center; gap: 4px; font-weight: 500;">
                         <i data-lucide="user" style="width: 10px; height: 10px; stroke-width: 2.5;"></i>
                         <span>${escapeHTML(task.assignee)}</span>
                     </div>
@@ -1634,7 +1639,7 @@ function createTaskCard(task) {
             </div>
             ${task.desc ? `<p>${escapeHTML(task.desc)}</p>` : ""}
             ${task.assignee ? `
-            <div class="task-assignee-badge">
+            <div class="task-assignee-badge assignee-${task.assigneeColor || 'purple'}">
                 <i data-lucide="user"></i>
                 <span>${escapeHTML(task.assignee)}</span>
             </div>
@@ -1770,7 +1775,7 @@ function renderListView(filteredTasks) {
             </td>
             <td>
                 ${task.assignee ? `
-                <span class="task-assignee-badge">
+                <span class="task-assignee-badge assignee-${task.assigneeColor || 'purple'}">
                     <i data-lucide="user"></i>
                     <span>${escapeHTML(task.assignee)}</span>
                 </span>
@@ -2047,6 +2052,11 @@ function openModal(editingTaskId = null) {
             taskAssigneeInput.value = task.assignee || "";
             taskStatusInput.value = task.status || "todo";
             
+            // Set assignee color radio button
+            const assigneeColorVal = task.assigneeColor || "purple";
+            const colorRadio = taskForm.querySelector(`input[name="assigneeColor"][value="${assigneeColorVal}"]`);
+            if (colorRadio) colorRadio.checked = true;
+            
             const progressVal = task.progress !== undefined ? task.progress : 0;
             taskProgressInput.value = progressVal;
             progressValLabel.textContent = `${progressVal}%`;
@@ -2095,6 +2105,9 @@ function openModal(editingTaskId = null) {
         // default location
         const defaultLocRadio = taskForm.querySelector('input[name="workLocation"][value="office"]');
         if (defaultLocRadio) defaultLocRadio.checked = true;
+        // default assigneeColor
+        const defaultColorRadio = taskForm.querySelector('input[name="assigneeColor"][value="purple"]');
+        if (defaultColorRadio) defaultColorRadio.checked = true;
         // default includeWeekends
         if (taskIncludeSaturdayInput) taskIncludeSaturdayInput.checked = true;
         if (taskIncludeSundayInput) taskIncludeSundayInput.checked = true;
@@ -2201,6 +2214,7 @@ function handleFormSubmit(e) {
     const includeSaturday = taskIncludeSaturdayInput ? taskIncludeSaturdayInput.checked : true;
     const includeSunday = taskIncludeSundayInput ? taskIncludeSundayInput.checked : true;
     const assignee = taskAssigneeInput.value.trim();
+    const assigneeColor = taskForm.querySelector('input[name="assigneeColor"]:checked').value;
     let status = taskStatusInput.value;
     let progress = parseInt(taskProgressInput.value);
 
@@ -2251,6 +2265,7 @@ function handleFormSubmit(e) {
             task.includeSaturday = includeSaturday;
             task.includeSunday = includeSunday;
             task.assignee = assignee;
+            task.assigneeColor = assigneeColor;
             task.status = status;
             task.progress = progress;
             task.subtasks = [...tempSubtasks];
@@ -2277,6 +2292,7 @@ function handleFormSubmit(e) {
             includeSaturday: includeSaturday,
             includeSunday: includeSunday,
             assignee: assignee,
+            assigneeColor: assigneeColor,
             status: status,
             progress: progress,
             subtasks: [...tempSubtasks],
