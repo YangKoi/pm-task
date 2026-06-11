@@ -159,7 +159,8 @@ const taskDateInput = document.getElementById("task-date-input");
 const taskHourInput = document.getElementById("task-hour-input");
 const taskMinuteInput = document.getElementById("task-minute-input");
 const taskCategoryInput = document.getElementById("task-category-input");
-const taskIncludeWeekendsInput = document.getElementById("task-include-weekends-input");
+const taskIncludeSaturdayInput = document.getElementById("task-include-saturday-input");
+const taskIncludeSundayInput = document.getElementById("task-include-sunday-input");
 
 const subtaskNewTitle = document.getElementById("subtask-new-title");
 const subtaskAddBtn = document.getElementById("subtask-add-btn");
@@ -1368,12 +1369,15 @@ function renderCalendar() {
             const inRange = cellDateStr >= taskStartStr && cellDateStr <= taskEndStr;
             if (!inRange) return false;
             
-            // Check weekend exclusion if includeWeekends is false
-            if (t.includeWeekends === false) {
-                const dayOfWeek = new Date(cellDateStr + 'T12:00:00').getDay(); // 0 is Sunday, 6 is Saturday
-                if (dayOfWeek === 0 || dayOfWeek === 6) {
-                    return false;
-                }
+            // Check Saturday / Sunday exclusions independently
+            const dayOfWeek = new Date(cellDateStr + 'T12:00:00').getDay(); // 0 is Sunday, 6 is Saturday
+            if (dayOfWeek === 6) {
+                const includeSat = t.includeSaturday !== undefined ? t.includeSaturday : (t.includeWeekends !== false);
+                if (!includeSat) return false;
+            }
+            if (dayOfWeek === 0) {
+                const includeSun = t.includeSunday !== undefined ? t.includeSunday : (t.includeWeekends !== false);
+                if (!includeSun) return false;
             }
             return true;
         });
@@ -1402,9 +1406,14 @@ function renderCalendar() {
             if (taskStartStr && taskEndStr && taskStartStr < taskEndStr) {
                 const rendersOnDate = (dateStr) => {
                     if (dateStr < taskStartStr || dateStr > taskEndStr) return false;
-                    if (task.includeWeekends === false) {
-                        const dayOfWeek = new Date(dateStr + 'T12:00:00').getDay();
-                        if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+                    const dayOfWeek = new Date(dateStr + 'T12:00:00').getDay();
+                    if (dayOfWeek === 6) {
+                        const includeSat = task.includeSaturday !== undefined ? task.includeSaturday : (task.includeWeekends !== false);
+                        if (!includeSat) return false;
+                    }
+                    if (dayOfWeek === 0) {
+                        const includeSun = task.includeSunday !== undefined ? task.includeSunday : (task.includeWeekends !== false);
+                        if (!includeSun) return false;
                     }
                     return true;
                 };
@@ -2051,10 +2060,22 @@ function openModal(editingTaskId = null) {
             const locRadio = taskForm.querySelector(`input[name="workLocation"][value="${locVal}"]`);
             if (locRadio) locRadio.checked = true;
 
-            // Load includeWeekends checkbox
-            if (taskIncludeWeekendsInput) {
-                taskIncludeWeekendsInput.checked = task.includeWeekends !== false;
+            // Load includeSaturday and includeSunday checkboxes
+            let includeSat = true;
+            let includeSun = true;
+            if (task.includeSaturday !== undefined) {
+                includeSat = task.includeSaturday;
+            } else if (task.includeWeekends === false) {
+                includeSat = false;
             }
+            if (task.includeSunday !== undefined) {
+                includeSun = task.includeSunday;
+            } else if (task.includeWeekends === false) {
+                includeSun = false;
+            }
+
+            if (taskIncludeSaturdayInput) taskIncludeSaturdayInput.checked = includeSat;
+            if (taskIncludeSundayInput) taskIncludeSundayInput.checked = includeSun;
 
             // Load subtasks
             if (task.subtasks) {
@@ -2075,9 +2096,8 @@ function openModal(editingTaskId = null) {
         const defaultLocRadio = taskForm.querySelector('input[name="workLocation"][value="office"]');
         if (defaultLocRadio) defaultLocRadio.checked = true;
         // default includeWeekends
-        if (taskIncludeWeekendsInput) {
-            taskIncludeWeekendsInput.checked = true;
-        }
+        if (taskIncludeSaturdayInput) taskIncludeSaturdayInput.checked = true;
+        if (taskIncludeSundayInput) taskIncludeSundayInput.checked = true;
     }
 
     renderModalSubtasks();
@@ -2178,7 +2198,8 @@ function handleFormSubmit(e) {
     const category = taskCategoryInput.value;
     const priority = taskForm.querySelector('input[name="priority"]:checked').value;
     const workLocation = taskForm.querySelector('input[name="workLocation"]:checked').value;
-    const includeWeekends = taskIncludeWeekendsInput ? taskIncludeWeekendsInput.checked : true;
+    const includeSaturday = taskIncludeSaturdayInput ? taskIncludeSaturdayInput.checked : true;
+    const includeSunday = taskIncludeSundayInput ? taskIncludeSundayInput.checked : true;
     const assignee = taskAssigneeInput.value.trim();
     let status = taskStatusInput.value;
     let progress = parseInt(taskProgressInput.value);
@@ -2227,7 +2248,8 @@ function handleFormSubmit(e) {
             task.category = category;
             task.priority = priority;
             task.workLocation = workLocation;
-            task.includeWeekends = includeWeekends;
+            task.includeSaturday = includeSaturday;
+            task.includeSunday = includeSunday;
             task.assignee = assignee;
             task.status = status;
             task.progress = progress;
@@ -2252,7 +2274,8 @@ function handleFormSubmit(e) {
             category: category,
             priority: priority,
             workLocation: workLocation,
-            includeWeekends: includeWeekends,
+            includeSaturday: includeSaturday,
+            includeSunday: includeSunday,
             assignee: assignee,
             status: status,
             progress: progress,

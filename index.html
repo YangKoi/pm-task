@@ -20,7 +20,7 @@
 
     
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="styles.css?v=1.9.0">
+    <link rel="stylesheet" href="styles.css?v=1.10.0">
 </head>
 <body>
     <!-- Canvas for Confetti -->
@@ -431,11 +431,18 @@
 
                 <div class="form-group">
                     <label>Lịch trình cuối tuần</label>
-                    <label class="weekend-toggle-btn" for="task-include-weekends-input">
-                        <input type="checkbox" id="task-include-weekends-input" checked>
-                        <span class="checkbox-custom-ui"></span>
-                        <span class="toggle-label">📅 Bao gồm Thứ Bảy & Chủ Nhật</span>
-                    </label>
+                    <div class="weekend-toggle-group" style="display: flex; gap: 0.75rem; width: 100%;">
+                        <label class="weekend-toggle-btn" for="task-include-saturday-input" style="flex: 1;">
+                            <input type="checkbox" id="task-include-saturday-input" checked>
+                            <span class="checkbox-custom-ui"></span>
+                            <span class="toggle-label">📅 Thứ Bảy</span>
+                        </label>
+                        <label class="weekend-toggle-btn" for="task-include-sunday-input" style="flex: 1;">
+                            <input type="checkbox" id="task-include-sunday-input" checked>
+                            <span class="checkbox-custom-ui"></span>
+                            <span class="toggle-label">📅 Chủ Nhật</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="form-row">
@@ -586,6 +593,6 @@
 
 
     <!-- JavaScript logic -->
-    <script src="app.js?v=1.9.0"></script>
+    <script src="app.js?v=1.10.0"></script>
 </body>
 </html>
