@@ -378,7 +378,7 @@ function populateAssigneeDatalist() {
 
 function openAssigneeModal() {
     if (assigneeManagerModal) {
-        assigneeManagerModal.style.display = "flex";
+        assigneeManagerModal.classList.add("active");
         if (newAssigneeName) newAssigneeName.value = "";
         if (assigneeSearchInput) assigneeSearchInput.value = "";
         renderAssigneeTable();
@@ -387,7 +387,7 @@ function openAssigneeModal() {
 
 function closeAssigneeModal() {
     if (assigneeManagerModal) {
-        assigneeManagerModal.style.display = "none";
+        assigneeManagerModal.classList.remove("active");
     }
 }
 
@@ -1822,7 +1822,7 @@ function renderCalendar() {
             if (task.assignee && task.assignee.trim() !== "") {
                 const colorClass = task.assigneeColor ? `assignee-${task.assigneeColor}` : "assignee-purple";
                 assigneeHTML = `
-                    <div class="calendar-task-assignee ${colorClass}" style="font-size: 0.65rem; opacity: 0.8; margin-top: 4px; display: flex; align-items: center; gap: 4px; font-weight: 500;">
+                    <div class="task-assignee-badge ${colorClass}" style="font-size: 0.65rem; padding: 2px 6px; border-radius: var(--border-radius-sm); margin-top: 4px; width: fit-content; display: inline-flex; align-items: center; gap: 0.25rem;">
                         <i data-lucide="user" style="width: 10px; height: 10px; stroke-width: 2.5;"></i>
                         <span>${escapeHTML(task.assignee)}</span>
                     </div>
