@@ -193,6 +193,9 @@ const gdriveStatusText = document.getElementById("gdrive-status-text");
 
 const gdriveClientIdInput = document.getElementById("gdrive-client-id");
 const gdriveSyncBtn = document.getElementById("gdrive-sync-btn");
+const gdriveManualSyncActions = document.getElementById("gdrive-manual-sync-actions");
+const gdriveUploadBtn = document.getElementById("gdrive-upload-btn");
+const gdriveDownloadBtn = document.getElementById("gdrive-download-btn");
 
 // Auth Modal Elements
 const authModal = document.getElementById("auth-modal");
@@ -792,6 +795,17 @@ function renderUserProfile() {
         if (logoutBtn) logoutBtn.addEventListener("click", logoutGDrive);
     }
     
+    // Toggle manual sync actions visibility based on access token state
+    if (gdriveManualSyncActions && gdriveSyncBtn) {
+        if (gdriveAccessToken && isGDriveConfigured && !isSyncingGDrive) {
+            gdriveManualSyncActions.style.display = "flex";
+            gdriveSyncBtn.style.display = "none";
+        } else {
+            gdriveManualSyncActions.style.display = "none";
+            gdriveSyncBtn.style.display = isGDriveConfigured && !isSyncingGDrive ? "flex" : "none";
+        }
+    }
+    
     if (window.lucide) {
         lucide.createIcons();
     }
@@ -1057,6 +1071,102 @@ async function syncWithGDrive() {
         renderUserProfile();
         renderAll();
         renderSidebarCategories();
+    }
+}
+
+async function handleGDriveManualUpload() {
+    if (!gdriveAccessToken) {
+        showToast("Bạn chưa đăng nhập Google Drive!", "warning");
+        return;
+    }
+    
+    const oldHTML = gdriveUploadBtn.innerHTML;
+    gdriveUploadBtn.disabled = true;
+    gdriveUploadBtn.innerHTML = `<i data-lucide="loader" class="spin" style="width: 14px; height: 14px; animation: spin 1s linear infinite;"></i> <span>Đang tải lên...</span>`;
+    if (window.lucide) lucide.createIcons();
+    
+    showToast("Đang tải dữ liệu lên Google Drive...", "info");
+    try {
+        await uploadTasksToGDrive();
+        showToast("Đã tải dữ liệu máy lên Google Drive thành công!", "success");
+    } catch (e) {
+        console.error("Lỗi upload thủ công:", e);
+        showToast("Lỗi khi tải dữ liệu lên Google Drive!", "error");
+    } finally {
+        gdriveUploadBtn.disabled = false;
+        gdriveUploadBtn.innerHTML = oldHTML;
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+async function handleGDriveManualDownload() {
+    if (!gdriveAccessToken) {
+        showToast("Bạn chưa đăng nhập Google Drive!", "warning");
+        return;
+    }
+    
+    const oldHTML = gdriveDownloadBtn.innerHTML;
+    gdriveDownloadBtn.disabled = true;
+    gdriveDownloadBtn.innerHTML = `<i data-lucide="loader" class="spin" style="width: 14px; height: 14px; animation: spin 1s linear infinite;"></i> <span>Đang tải về...</span>`;
+    if (window.lucide) lucide.createIcons();
+
+    try {
+        const fileId = await findGDriveFile();
+        if (!fileId) {
+            showToast("Không tìm thấy tệp sao lưu nào trên Google Drive!", "warning");
+            return;
+        }
+        
+        const cloudData = await downloadGDriveFile(fileId);
+        if (!cloudData || !cloudData.tasks) {
+            showToast("Tệp sao lưu trên Google Drive trống hoặc không hợp lệ!", "warning");
+            return;
+        }
+        
+        const cloudTasks = cloudData.tasks;
+        
+        // Hỏi người dùng muốn ghi đè hay hợp nhất
+        const choice = confirm("Bạn có muốn HỢP NHẤT dữ liệu từ Google Drive với dữ liệu máy hiện tại không?\n\n- Chọn 'OK' để Hợp nhất dữ liệu (giữ lại công việc mới nhất ở cả hai nơi).\n- Chọn 'Cancel' để GHI ĐÈ hoàn toàn dữ liệu hiện tại bằng dữ liệu trên Google Drive.");
+        
+        if (choice) {
+            // Hợp nhất thông minh
+            let localTasks = [...tasks];
+            const mergedMap = new Map();
+            cloudTasks.forEach(task => mergedMap.set(task.id, task));
+            localTasks.forEach(localTask => {
+                if (!mergedMap.has(localTask.id)) {
+                    mergedMap.set(localTask.id, localTask);
+                } else {
+                    const cloudTask = mergedMap.get(localTask.id);
+                    const localTime = localTask.updatedAt || localTask.createdAt || 0;
+                    const cloudTime = cloudTask.updatedAt || cloudTask.createdAt || 0;
+                    if (localTime > cloudTime) {
+                        mergedMap.set(localTask.id, localTask);
+                    }
+                }
+            });
+            tasks = Array.from(mergedMap.values());
+        } else {
+            // Ghi đè hoàn toàn
+            if (confirm("Xác nhận: Ghi đè hoàn toàn dữ liệu cục bộ bằng dữ liệu từ Google Drive? Thao tác này không thể hoàn tác.")) {
+                tasks = cloudTasks;
+            } else {
+                return; // Hủy thao tác
+            }
+        }
+        
+        saveTasks();
+        rebuildAssigneeColorsFromTasks();
+        renderSidebarCategories();
+        renderAll();
+        showToast("Đã tải dữ liệu từ Google Drive về máy thành công!", "success");
+    } catch (e) {
+        console.error("Lỗi download thủ công:", e);
+        showToast("Lỗi khi tải dữ liệu từ Google Drive!", "error");
+    } finally {
+        gdriveDownloadBtn.disabled = false;
+        gdriveDownloadBtn.innerHTML = oldHTML;
+        if (window.lucide) lucide.createIcons();
     }
 }
 
@@ -1359,6 +1469,14 @@ function setupEventListeners() {
                 loginAndSyncGDrive();
             }
         });
+    }
+
+    // Google Drive Manual Sync Actions
+    if (gdriveUploadBtn) {
+        gdriveUploadBtn.addEventListener("click", handleGDriveManualUpload);
+    }
+    if (gdriveDownloadBtn) {
+        gdriveDownloadBtn.addEventListener("click", handleGDriveManualDownload);
     }
 
     // Toggle password visibility

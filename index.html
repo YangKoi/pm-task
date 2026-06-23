@@ -20,7 +20,7 @@
 
     
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="styles.css?v=1.12.0">
+    <link rel="stylesheet" href="styles.css?v=1.13.0">
 </head>
 <body>
     <!-- Canvas for Confetti -->
@@ -100,6 +100,19 @@
                         <i data-lucide="refresh-cw"></i>
                         <span>Đăng nhập & Đồng bộ</span>
                     </button>
+                    
+                    <!-- Các nút đồng bộ thủ công mới (mặc định ẩn) -->
+                    <div id="gdrive-manual-sync-actions" style="display: none; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; width: 100%;">
+                        <button class="action-btn-secondary" id="gdrive-upload-btn" title="Tải dữ liệu máy lên Google Drive">
+                            <i data-lucide="cloud-upload" style="width: 14px; height: 14px;"></i>
+                            <span>Tải lên Google Drive</span>
+                        </button>
+                        <button class="action-btn-secondary" id="gdrive-download-btn" title="Tải dữ liệu từ Google Drive về máy">
+                            <i data-lucide="cloud-download" style="width: 14px; height: 14px;"></i>
+                            <span>Tải về từ Google Drive</span>
+                        </button>
+                    </div>
+                    
                     <input type="file" id="import-file-input" accept=".json" style="display: none;">
                 </div>
             </div>
@@ -716,6 +729,6 @@
     </div>
 
     <!-- JavaScript logic -->
-    <script src="app.js?v=1.12.0"></script>
+    <script src="app.js?v=1.13.0"></script>
 </body>
 </html>
