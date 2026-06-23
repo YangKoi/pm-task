@@ -88,7 +88,7 @@ const VIETNAMESE_MONTHS = [
 ];
 
 // --- Google Drive Client Credentials ---
-const DEFAULT_GDRIVE_CLIENT_ID = ""; // Dán Google Client ID của bạn vào đây để đồng bộ mặc định không cần cấu hình
+const DEFAULT_GDRIVE_CLIENT_ID = ""; // Dán Google Client ID của bạn vào đây. Khi dán vào, tất cả người dùng khác sẽ không cần cấu hình thủ công nữa.
 let gdriveClientId = "";
 let gdriveAccessToken = "";
 
@@ -849,7 +849,7 @@ function loginAndSyncGDrive() {
         
         const tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: gdriveClientId,
-            scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+            scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
             callback: async (tokenResponse) => {
                 if (tokenResponse && tokenResponse.access_token) {
                     gdriveAccessToken = tokenResponse.access_token;
@@ -908,8 +908,8 @@ function logoutGDrive() {
 async function findGDriveFile() {
     if (!gdriveAccessToken) return null;
     try {
-        const query = encodeURIComponent("name = 'tgtask_backup.json' and 'appDataFolder' in parents and trashed = false");
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&spaces=appDataFolder&fields=files(id,name)`, {
+        const query = encodeURIComponent("name = 'tgtask_backup.json' and trashed = false");
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name)`, {
             headers: {
                 "Authorization": `Bearer ${gdriveAccessToken}`
             }
@@ -974,10 +974,7 @@ async function uploadTasksToGDrive() {
             mimeType: "application/json"
         };
         
-        if (!fileId) {
-            metadata.parents = ["appDataFolder"];
-        }
-        
+
         const multipartBody = 
             delimiter +
             "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
