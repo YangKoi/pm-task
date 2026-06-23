@@ -927,7 +927,7 @@ async function findGDriveFile() {
     if (!gdriveAccessToken) return null;
     try {
         const query = encodeURIComponent("name = 'tgtask_backup.json' and trashed = false");
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name)`, {
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name)&orderBy=modifiedTime%20desc`, {
             headers: {
                 "Authorization": `Bearer ${gdriveAccessToken}`
             }
