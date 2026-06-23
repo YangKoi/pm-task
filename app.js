@@ -1009,7 +1009,7 @@ async function uploadTasksToGDrive() {
                 "Authorization": `Bearer ${gdriveAccessToken}`,
                 "Content-Type": `multipart/related; boundary=${boundary}`
             },
-            body: multipartBody
+            body: new Blob([multipartBody], { type: `multipart/related; boundary=${boundary}` })
         });
         
         if (response.ok) {
