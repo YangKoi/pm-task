@@ -88,7 +88,7 @@ const VIETNAMESE_MONTHS = [
 ];
 
 // --- Google Drive Client Credentials ---
-const DEFAULT_GDRIVE_CLIENT_ID = ""; // Dán Google Client ID của bạn vào đây. Khi dán vào, tất cả người dùng khác sẽ không cần cấu hình thủ công nữa.
+const DEFAULT_GDRIVE_CLIENT_ID = "889420446489-vq1u1ua4bv2eo0umadm99p8qjbchi0t1.apps.googleusercontent.com"; // Dán Google Client ID của bạn vào đây. Khi dán vào, tất cả người dùng khác sẽ không cần cấu hình thủ công nữa.
 let gdriveClientId = "";
 let gdriveAccessToken = "";
 
