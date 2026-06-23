@@ -4,6 +4,7 @@
  */
 
 // --- Default Mock Data ---
+const BASE_MOCK_TIME = 1716000000000; // Mốc thời gian cố định cho dữ liệu mẫu (18/05/2024)
 const DEFAULT_TASKS = [
     {
         id: "task-mock-1",
@@ -21,7 +22,7 @@ const DEFAULT_TASKS = [
             { id: "sub-1-2", title: "Thiết kế giao diện Dark Mode", completed: true },
             { id: "sub-1-3", title: "Tối ưu hóa hình ảnh tài nguyên", completed: false }
         ],
-        createdAt: Date.now() - 24 * 60 * 60 * 1000
+        createdAt: BASE_MOCK_TIME - 24 * 60 * 60 * 1000
     },
     {
         id: "task-mock-2",
@@ -38,7 +39,7 @@ const DEFAULT_TASKS = [
             { id: "sub-2-1", title: "Khởi động nhẹ nhàng 10 phút", completed: false },
             { id: "sub-2-2", title: "Đi bộ nhanh kết hợp chạy bộ 5km", completed: false }
         ],
-        createdAt: Date.now()
+        createdAt: BASE_MOCK_TIME
     },
     {
         id: "task-mock-3",
@@ -52,7 +53,7 @@ const DEFAULT_TASKS = [
         assigneeColor: "orange",
         progress: 0,
         subtasks: [],
-        createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000
+        createdAt: BASE_MOCK_TIME - 3 * 24 * 60 * 60 * 1000
     },
     {
         id: "task-mock-4",
@@ -69,7 +70,7 @@ const DEFAULT_TASKS = [
             { id: "sub-4-1", title: "Học lý thuyết về Event Loop", completed: true },
             { id: "sub-4-2", title: "Viết demo pháo hoa Canvas hoàn chỉnh", completed: true }
         ],
-        createdAt: Date.now() - 4 * 24 * 60 * 60 * 1000
+        createdAt: BASE_MOCK_TIME - 4 * 24 * 60 * 60 * 1000
     }
 ];
 
@@ -641,19 +642,26 @@ function loadTasks() {
         }
     } else {
         tasks = DEFAULT_TASKS;
-        saveTasks();
+        saveTasks(false);
     }
 }
 
-async function saveTasks() {
+async function saveTasks(isDirty = true) {
     // 1. Lưu LocalStorage trước (luôn luôn an toàn offline)
     localStorage.setItem("tgtask_tasks", JSON.stringify(tasks));
     
+    if (isDirty) {
+        localStorage.setItem("tgtask_is_dirty", "true");
+    }
+    
     // 2. Nếu đã đăng nhập và đồng bộ Google Drive hoạt động, đẩy lên Cloud
-    if (gdriveAccessToken) {
+    if (gdriveAccessToken && isDirty) {
         try {
             // Đẩy không đồng bộ lên Google Drive trong nền
-            uploadTasksToGDrive().catch(err => console.error("Lỗi upload nền:", err));
+            uploadTasksToGDrive().then(() => {
+                // Sau khi upload thành công, xoá trạng thái dirty
+                localStorage.setItem("tgtask_is_dirty", "false");
+            }).catch(err => console.error("Lỗi upload nền:", err));
         } catch (e) {
             console.error("Lỗi tự động lưu lên Google Drive:", e);
         }
@@ -905,6 +913,7 @@ function logoutGDrive() {
         localStorage.removeItem("tgtask_gdrive_access_token");
         localStorage.removeItem("tgtask_gdrive_token_expires");
         localStorage.removeItem("tgtask_gdrive_token_scope");
+        localStorage.removeItem("tgtask_is_dirty");
         localStorage.removeItem("tgtask_gdrive_user_email");
         localStorage.removeItem("tgtask_gdrive_user_name");
         localStorage.removeItem("tgtask_gdrive_user_avatar");
@@ -1041,6 +1050,17 @@ async function syncWithGDrive() {
         
         let cloudTasks = (cloudData && cloudData.tasks) ? cloudData.tasks : [];
         
+        const isDirty = localStorage.getItem("tgtask_is_dirty") === "true";
+        
+        // Nếu cục bộ chưa có thay đổi nào và có file sao lưu trên đám mây, tải về trực tiếp
+        if (!isDirty && fileId && cloudData) {
+            tasks = cloudTasks;
+            saveTasks(false);
+            localStorage.setItem("tgtask_is_dirty", "false");
+            showToast("Đồng bộ dữ liệu từ Google Drive hoàn tất!", "success");
+            return;
+        }
+        
         // Hợp nhất dữ liệu thông minh
         const mergedMap = new Map();
         
@@ -1065,11 +1085,12 @@ async function syncWithGDrive() {
         
         tasks = Array.from(mergedMap.values());
         
-        // Lưu lại máy
-        localStorage.setItem("tgtask_tasks", JSON.stringify(tasks));
+        // Lưu lại máy và đánh dấu dirty để đẩy lên mây (chúng ta đang cập nhật mây bằng dữ liệu hợp nhất)
+        saveTasks(true);
         
         // Đẩy lên cloud
         await uploadTasksToGDrive();
+        localStorage.setItem("tgtask_is_dirty", "false");
         
         // Đồng bộ hoàn tất
         showToast("Đồng bộ dữ liệu với Google Drive hoàn tất!", "success");
@@ -1165,7 +1186,8 @@ async function handleGDriveManualDownload() {
             }
         }
         
-        saveTasks();
+        saveTasks(false);
+        localStorage.setItem("tgtask_is_dirty", "false");
         rebuildAssigneeColorsFromTasks();
         renderSidebarCategories();
         renderAll();
@@ -3061,6 +3083,7 @@ function handleResetGDriveConfig() {
             localStorage.removeItem("tgtask_gdrive_access_token");
             localStorage.removeItem("tgtask_gdrive_token_expires");
             localStorage.removeItem("tgtask_gdrive_token_scope");
+            localStorage.removeItem("tgtask_is_dirty");
             localStorage.removeItem("tgtask_gdrive_user_email");
             localStorage.removeItem("tgtask_gdrive_user_name");
             localStorage.removeItem("tgtask_gdrive_user_avatar");
