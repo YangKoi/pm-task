@@ -665,18 +665,24 @@ function loadGDriveConfig() {
     gdriveClientId = localStorage.getItem("tgtask_gdrive_client_id") || DEFAULT_GDRIVE_CLIENT_ID || "";
     gdriveAccessToken = localStorage.getItem("tgtask_gdrive_access_token") || "";
     const expiresAt = parseInt(localStorage.getItem("tgtask_gdrive_token_expires") || "0");
+    const savedScope = localStorage.getItem("tgtask_gdrive_token_scope") || "";
+    const requiredScope = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
     
     if (gdriveClientId) {
         isGDriveConfigured = true;
-        // Kiểm tra xem token cũ còn hạn không
-        if (gdriveAccessToken && Date.now() < expiresAt) {
+        // Kiểm tra xem token cũ còn hạn và đúng scope không
+        if (gdriveAccessToken && Date.now() < expiresAt && savedScope === requiredScope) {
             gdriveUserEmail = localStorage.getItem("tgtask_gdrive_user_email") || "";
             gdriveUserName = localStorage.getItem("tgtask_gdrive_user_name") || "";
             gdriveUserAvatar = localStorage.getItem("tgtask_gdrive_user_avatar") || "";
             // Tự động đồng bộ ngay khi load trang
             syncWithGDrive();
         } else {
-            gdriveAccessToken = ""; // Token đã hết hạn
+            // Token đã hết hạn hoặc sai scope, cần xoá để đăng nhập lại với quyền mới
+            gdriveAccessToken = "";
+            localStorage.removeItem("tgtask_gdrive_access_token");
+            localStorage.removeItem("tgtask_gdrive_token_expires");
+            localStorage.removeItem("tgtask_gdrive_token_scope");
         }
     }
     updateGDriveConfigBadge(isGDriveConfigured);
@@ -854,9 +860,11 @@ function loginAndSyncGDrive() {
                 if (tokenResponse && tokenResponse.access_token) {
                     gdriveAccessToken = tokenResponse.access_token;
                     const expiresAt = Date.now() + tokenResponse.expires_in * 1000;
+                    const requiredScope = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
                     
                     localStorage.setItem("tgtask_gdrive_access_token", gdriveAccessToken);
                     localStorage.setItem("tgtask_gdrive_token_expires", expiresAt);
+                    localStorage.setItem("tgtask_gdrive_token_scope", requiredScope);
                     
                     // Lấy thông tin email người dùng để hiển thị trên Sidebar
                     await fetchUserInfo();
@@ -896,6 +904,7 @@ function logoutGDrive() {
         
         localStorage.removeItem("tgtask_gdrive_access_token");
         localStorage.removeItem("tgtask_gdrive_token_expires");
+        localStorage.removeItem("tgtask_gdrive_token_scope");
         localStorage.removeItem("tgtask_gdrive_user_email");
         localStorage.removeItem("tgtask_gdrive_user_name");
         localStorage.removeItem("tgtask_gdrive_user_avatar");
@@ -920,10 +929,13 @@ async function findGDriveFile() {
                 return data.files[0].id;
             }
         } else {
-            console.error("Lỗi tìm kiếm file trên Drive:", response.status);
+            const errText = await response.text();
+            console.error("Lỗi tìm kiếm file trên Drive:", response.status, errText);
+            throw new Error(`Google Drive API error: ${response.status} - ${errText}`);
         }
     } catch (e) {
         console.error("Lỗi findGDriveFile:", e);
+        throw e;
     }
     return null;
 }
@@ -939,12 +951,14 @@ async function downloadGDriveFile(fileId) {
         if (response.ok) {
             return await response.json();
         } else {
-            console.error("Lỗi tải file từ Drive:", response.status);
+            const errText = await response.text();
+            console.error("Lỗi tải file từ Drive:", response.status, errText);
+            throw new Error(`Google Drive API error: ${response.status} - ${errText}`);
         }
     } catch (e) {
         console.error("Lỗi downloadGDriveFile:", e);
+        throw e;
     }
-    return null;
 }
 
 async function uploadTasksToGDrive() {
@@ -966,23 +980,19 @@ async function uploadTasksToGDrive() {
         }
         
         const boundary = "314159265358979323846";
-        const delimiter = `\r\n--${boundary}\r\n`;
-        const closeDelimiter = `\r\n--${boundary}--\r\n`;
-        
         const metadata = {
             name: "tgtask_backup.json",
             mimeType: "application/json"
         };
         
-
         const multipartBody = 
-            delimiter +
+            `--${boundary}\r\n` +
             "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
             JSON.stringify(metadata) +
-            delimiter +
+            `\r\n--${boundary}\r\n` +
             "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
             fileContent +
-            closeDelimiter;
+            `\r\n--${boundary}--\r\n`;
             
         const response = await fetch(url, {
             method: method,
@@ -996,10 +1006,13 @@ async function uploadTasksToGDrive() {
         if (response.ok) {
             console.log("Đã đẩy dữ liệu thành công lên Google Drive!");
         } else {
-            console.error("Lỗi upload dữ liệu lên Drive:", response.status, await response.text());
+            const errText = await response.text();
+            console.error("Lỗi upload dữ liệu lên Drive:", response.status, errText);
+            throw new Error(`Google Drive API error: ${response.status} - ${errText}`);
         }
     } catch (e) {
         console.error("Lỗi uploadTasksToGDrive:", e);
+        throw e;
     }
 }
 
@@ -3047,6 +3060,7 @@ function handleResetGDriveConfig() {
             localStorage.removeItem("tgtask_gdrive_client_id");
             localStorage.removeItem("tgtask_gdrive_access_token");
             localStorage.removeItem("tgtask_gdrive_token_expires");
+            localStorage.removeItem("tgtask_gdrive_token_scope");
             localStorage.removeItem("tgtask_gdrive_user_email");
             localStorage.removeItem("tgtask_gdrive_user_name");
             localStorage.removeItem("tgtask_gdrive_user_avatar");
