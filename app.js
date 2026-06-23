@@ -2865,14 +2865,25 @@ function importData(e) {
     const reader = new FileReader();
     reader.onload = function(evt) {
         try {
-            const imported = JSON.parse(evt.target.result);
+            let imported = JSON.parse(evt.target.result);
+            
+            // Hỗ trợ trường hợp JSON bị double-serialize (chuỗi JSON nằm trong chuỗi JSON)
+            if (typeof imported === "string") {
+                imported = JSON.parse(imported);
+            }
+            
+            // Nếu là định dạng backup từ Google Drive: { tasks: [...], updatedAt: ... }
+            if (imported && !Array.isArray(imported) && Array.isArray(imported.tasks)) {
+                imported = imported.tasks;
+            }
+            
             if (Array.isArray(imported)) {
-                // Validate some basic structures
-                const isValid = imported.every(t => t.id && t.title && t.status);
+                // Xác thực cấu trúc cơ bản của các công việc một cách an toàn
+                const isValid = imported.every(t => t && typeof t === 'object' && t.id && t.title && t.status);
                 if (isValid) {
                     if (confirm("Bạn có muốn ghi đè toàn bộ công việc hiện tại bằng dữ liệu nhập khẩu không?")) {
                         tasks = imported;
-                        saveTasks();
+                        saveTasks(true); // Lưu cục bộ và đánh dấu thay đổi để đồng bộ lên mây
                         rebuildAssigneeColorsFromTasks();
                         renderSidebarCategories();
                         renderAll();
@@ -2882,7 +2893,7 @@ function importData(e) {
                     showToast("Định dạng file sao lưu không hợp lệ. Vui lòng kiểm tra lại.", "error");
                 }
             } else {
-                showToast("Nội dung file JSON phải là một mảng các công việc.", "error");
+                showToast("Nội dung file JSON phải là một mảng các công việc hoặc định dạng sao lưu Google Drive.", "error");
             }
         } catch (err) {
             console.error(err);
